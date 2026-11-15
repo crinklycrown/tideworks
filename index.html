@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tideworks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./src/styles/main.css">
+</head>
+
+<body>
+<!-- ============ SPIELWELT (Vollbild) ============ -->
+<canvas id="world"></canvas>
+
+<!-- ============ OVERLAYS (schweben über der Karte) ============ -->
+<div id="hud">
+
+  <!-- Obere Leiste -->
+  <header id="topbar">
+    <div class="tb-left panel">
+      <canvas id="logo" class="px" width="24" height="24" style="width:26px;height:26px"></canvas>
+      <span class="title">Tideworks</span>
+      <span id="xpIcon" data-tip="fame"></span>
+      <div class="bar xpbar" data-tip="fame"><div id="xpBar" style="width:0%"></div></div>
+      <span id="levelText" class="lvl" data-tip="fame">Ruhm 1</span>
+      <span id="popText" class="pop pix" data-tip="pop"></span>
+      <span id="coinText" class="pop pix coins" data-tip="coins"></span>
+      <span id="evNext" class="pop pix evnext hidden" data-tip="evnext"></span>
+      <span id="lhText" class="pop pix lhrace hidden" data-tip="lh"></span>
+    </div>
+    <div class="tb-mid">
+      <button id="islBtn" class="panel islbtn" data-tip="isl"><span id="islFlag"></span><span id="islName" class="pix">Offenes Meer</span><span class="chev">&#9662;</span></button>
+      <div id="islMenu" class="panel menu hidden"></div>
+    </div>
+    <div class="tb-right panel">
+      <span id="pausedBadge" class="paused-badge pix hidden">Pausiert</span>
+      <div id="speedBtns" class="speed"></div>
+      <span id="clockIcon"></span>
+      <div class="clock"><div id="clockText" class="pix"></div><div id="clockSub" class="xs muted"></div></div>
+      <button id="gearBtn" class="ibtn ibtn-sm" data-tip="gear"></button>
+    </div>
+  </header>
+
+  <div id="buildHint" class="panel hidden"></div>
+  <div id="foundBtns" class="hidden"></div>
+
+  <!-- Links oben: Lager der Insel unter der Kamera -->
+  <aside id="invPanel" class="panel col">
+    <div class="phead click" id="invHead"><span id="invTitle" class="row"></span><span id="invTog" class="tog">&#9662;</span></div>
+    <div id="invBody" class="col grow0">
+      <div id="inventory" class="pbody scroll"></div>
+      <div id="invDetail" class="pfoot xs muted"></div>
+    </div>
+  </aside>
+  <div id="invPop" class="panel hidden"></div>
+
+  <!-- Links unten: Gebäude/Feld (nur bei Auswahl) -->
+  <aside id="insights" class="panel col hidden"></aside>
+
+  <!-- Rechts oben: nächstes Ziel, darunter die Minimap -->
+  <aside id="evBar" class="panel col hidden"></aside>
+  <aside id="goalCard" class="panel col"></aside>
+  <aside id="miniMap" class="panel col">
+    <div class="phead click" id="miniHead" data-tip="mini"><span class="row"><span id="miniIcon"></span>Karte</span><span class="row"><span id="miniScale" class="xs muted"></span><span id="miniTog" class="tog">&#9662;</span></span></div>
+    <div id="miniBody"><canvas id="miniCv" class="px" width="180" height="180"></canvas></div>
+  </aside>
+
+  <!-- Rechts unten: Zoom und Rückkehr -->
+  <div id="mapTools">
+    <button class="ibtn" id="zoomIn" data-tip="zoomIn"></button>
+    <button class="ibtn" id="zoomOut" data-tip="zoomOut"></button>
+    <button class="ibtn" id="goHome" data-tip="home"></button>
+  </div>
+
+  <!-- Unten mittig: Baumenü und Knopfleiste -->
+  <div id="bottom">
+    <div id="buildBar" class="hidden">
+      <div id="bldSlots" class="panel slots"></div>
+      <div id="catRow" class="cats"></div>
+    </div>
+    <nav id="hotbar" class="panel"></nav>
+  </div>
+
+  <!-- Koop: Chat (unten links), Markierungs-Menü, Pfeile am Rand, Verbindungshinweis -->
+  <div id="chat" class="hidden">
+    <div id="chatHist" class="panel col hidden"><div class="phead"><span>Chat</span><button class="xbtn" id="chatHistX">&times;</button></div><div id="chatHistBody" class="pbody scroll"></div></div>
+    <div id="chatLog"></div>
+    <div class="row" id="chatBar"><button class="ibtn ibtn-sm" id="chatHistBtn" data-tip="chatHist"></button><input id="chatInput" class="inp hidden" maxlength="160" placeholder="Nachricht … (Enter schickt, Esc schließt)" spellcheck="false" autocomplete="off"></div>
+  </div>
+  <div id="markMenu" class="hidden"></div>
+  <div id="markEdge"></div>
+  <div id="netBanner" class="panel pix hidden"></div>
+
+  <!-- Großes Fenster (Forschung, Flotte, Statistik) -->
+  <section id="win" class="panel col hidden" role="dialog">
+    <div class="phead"><span id="winTitle" class="row"></span><button class="xbtn" id="winClose" data-tip="winClose">&times;</button></div>
+    <div id="winBody" class="pbody scroll"></div>
+  </section>
+</div>
+
+<!-- ============ TITELBILDSCHIRM (über der Demo-Fabrik) ============ -->
+<div id="title" class="hidden">
+  <div class="vignette"></div>
+  <div class="tmenu">
+    <canvas id="titleLogo" class="px"></canvas>
+    <div class="tbtns">
+      <button class="tbtn" id="tContinue">Spiel fortsetzen<span id="tContSub" class="tsub"></span></button>
+      <button class="tbtn" id="tNew">Neues Spiel</button>
+      <button class="tbtn" id="tLoad">Spiel laden</button>
+      <button class="tbtn" id="tCoop">Koop<span class="tsub">gemeinsam mit Freunden</span></button>
+    </div>
+  </div>
+  <div id="tVersion" class="tver"></div>
+</div>
+
+<!-- ============ PAUSENMENÜ (Esc / Zahnrad) ============ -->
+<div id="pauseMenu" class="modal-bg hidden">
+  <div class="panel pmenu" role="dialog" aria-modal="true">
+    <div class="phead"><span class="row" id="pmTitle">Pause</span><span id="pmSlot" class="xs muted"></span></div>
+    <div class="pbody col" style="gap:6px">
+      <button class="tbtn tbtn-sm" data-pm="resume">Fortsetzen</button>
+      <button class="tbtn tbtn-sm" data-pm="save">Speichern</button>
+      <button class="tbtn tbtn-sm" data-pm="load">Spiel laden</button>
+      <button class="tbtn tbtn-sm" data-pm="keys">Tastenkürzel</button>
+      <button class="tbtn tbtn-sm" data-pm="scenes">Szenen<span class="tsub">gesehene Cutscenes erneut ansehen</span></button>
+      <div id="pmCoop" class="hidden"></div>
+      <div class="mrow" id="evModeRow"><span>Ereignisse<span class="xs muted">Sturm, Vulkan, Händlerfest …</span></span><div class="seg" id="evModeSeg"></div></div>
+      <button class="tbtn tbtn-sm" data-pm="unlock">Alles freischalten<span class="tsub">Testmodus</span></button>
+      <button class="tbtn tbtn-sm" data-pm="menu">Hauptmenü<span class="tsub">speichert vorher</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ KOOP-LOBBY, Beitrittsanfragen ============ -->
+<div id="lobby" class="modal-bg hidden"></div>
+<div id="joinAsk"></div>
+
+<!-- ============ CUTSCENES UND DIALOGFENSTER (cutscene/stage.js) ============ -->
+<div id="cine" class="hidden">
+  <div id="cineStage" tabindex="-1" role="dialog" aria-label="Szene. Klick, Leertaste oder Enter: weiter.">
+    <canvas id="cineCv" width="320" height="180"></canvas>
+    <div class="cine-ov cine-name" id="cineName" hidden></div>
+    <div class="cine-ov cine-text" id="cineText" aria-live="polite"></div>
+    <button class="cine-ov cine-skip" id="cineSkip" type="button" hidden>Überspringen &#9656;&#9656;</button>
+    <div class="cine-ov cine-note" id="cineNote" hidden></div>
+  </div>
+</div>
+
+<div id="tooltip" class="tooltip hidden"></div>
+<div id="toasts" class="toasts"></div>
+<button id="followTag" class="followtag panel hidden" type="button" title="Folgen beenden (Esc)"></button>
+<input id="importFile" type="file" accept=".json,application/json" class="hidden">
+<div id="modal" class="modal-bg hidden"></div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

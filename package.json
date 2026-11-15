@@ -1,0 +1,27 @@
+{
+  "name": "tideworks",
+  "private": true,
+  "version": "0.23.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check:tree": "node tools/check-skilltree.mjs",
+    "check:world": "node tools/check-world.mjs",
+    "check:coop": "node tools/check-coop.mjs",
+    "check:story": "node tools/check-story.mjs",
+    "check:npc": "node tools/check-npc.mjs",
+    "check:extract": "node tools/check-extract.mjs",
+    "check:wonder": "node tools/check-wonder.mjs",
+    "check:dive": "node tools/check-dive.mjs",
+    "check:akt4": "node tools/check-akt4.mjs",
+    "check:ending": "node tools/check-ending.mjs"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4"
+  },
+  "dependencies": {
+    "peerjs": "^1.5.5"
+  }
+}

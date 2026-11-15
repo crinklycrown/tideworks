@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rauch hinter dem Nebel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: eine Bühne (16:9) mittig, darunter eine Bedienzeile. Ein festes, dunkles Kinolook-Design. */
+:root{
+  --stage-bg:#0d1014; --ink:#d6dde1; --muted:#8a979f; --wood:#5c3a1b; --gold:#e8b45c; --parch:#fbf0d4; --text:#4a3020;
+  --f-pixel:'Pixelify Sans','Courier New',monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none !important;}
+html,body{height:100%;}
+body{background:var(--stage-bg); color:var(--ink); font-family:var(--f-pixel);
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:16px;
+  display:flex; flex-direction:column; align-items:center; gap:12px; box-sizing:border-box;}
+.head{width:100%; max-width:1280px; display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap;}
+.head h1{font-size:20px; font-weight:600; margin:0; letter-spacing:.02em; color:var(--ink); text-wrap:balance;}
+.head span{font-size:13px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase;}
+.stage{position:relative; width:100%; max-width:1280px; container-type:inline-size; outline:none; cursor:pointer; line-height:0;}
+.stage:focus-visible{box-shadow:0 0 0 3px var(--gold);}
+canvas#scene{width:100%; height:auto; aspect-ratio:16/9; display:block; image-rendering:pixelated; image-rendering:crisp-edges; background:#000;}
+.ov{position:absolute; line-height:1.3;}
+.name{left:calc(66/320*100%); top:calc(119/180*100%); width:calc(62/320*100%); height:calc(12/180*100%);
+  display:flex; align-items:center; justify-content:center; color:var(--parch); font-weight:600;
+  font-size:max(10px, calc(100cqw * 6.4 / 320)); letter-spacing:.04em; pointer-events:none;}
+.text{left:calc(73/320*100%); top:calc(134/180*100%); width:calc(234/320*100%); height:calc(38/180*100%);
+  color:var(--text); font-size:max(10px, calc(100cqw * 6.6 / 320)); overflow:hidden; pointer-events:none; white-space:pre-wrap;}
+.skip{right:calc(4/320*100%); top:calc(3/180*100%); font-family:var(--f-pixel); font-size:max(11px, calc(100cqw * 5.4 / 320)); line-height:1;
+  background:transparent; color:#9aa6ad; border:1px solid #3a444c; border-radius:3px; padding:.35em .7em; cursor:pointer;}
+.skip:hover,.skip:focus-visible{color:#fff; border-color:var(--gold); outline:none;}
+.end{inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.8em; background:rgba(8,10,13,.72); line-height:1.3;}
+.end p{margin:0; color:var(--ink); font-size:max(13px, calc(100cqw * 8 / 320));}
+.btn{font-family:var(--f-pixel); font-weight:600; font-size:max(13px, calc(100cqw * 6.4 / 320)); cursor:pointer; color:#4a2d10;
+  border:2px solid var(--wood); border-radius:4px; padding:.45em 1em; background:linear-gradient(#ffd977,#f0b443);
+  box-shadow:inset 0 -3px 0 #c98a2a, 0 2px 0 var(--wood);}
+.btn:focus-visible{outline:3px solid #fff; outline-offset:2px;}
+.help{width:100%; max-width:1280px; font-family:system-ui,sans-serif; font-size:13px; color:var(--muted); line-height:1.5;}
+.help b{color:var(--ink); font-weight:600;}
+</style>
+</head>
+<body>
+
+
+<div class="head">
+  <h1>Rauch hinter dem Nebel</h1>
+  <span>Tideworks &middot; Cutscene-Test &middot; Akt 1 &rarr; 2</span>
+</div>
+
+<div class="stage" id="stage" tabindex="0" aria-label="Cutscene. Klicken oder Leertaste, um fortzufahren.">
+  <canvas id="scene" width="320" height="180"></canvas>
+  <div class="ov name" id="name" hidden>Ole</div>
+  <div class="ov text" id="text" aria-live="polite"></div>
+  <button class="ov skip" id="skip" type="button">Überspringen &#9656;&#9656;</button>
+  <div class="ov end" id="end" hidden>
+    <p>Ende des Tests</p>
+    <button class="btn" id="replay" type="button">Szene erneut abspielen</button>
+  </div>
+</div>
+
+<p class="help">Die Szene läuft automatisch, danach spricht der NPC. <b>Klick, Leertaste oder Enter</b> zeigt den nächsten Text.</p>
+
+<script>
+'use strict';
+/* ============================================================
+   Grundlagen
+   ============================================================ */
+const W = 320, H = 180, HOR = 98, BAR = 16;
+const T_FOG = 7, T_SHOT4 = 11, T_SHOT5 = 13, T_FADE = 15.2, T_END = 16.4;
+const cv = document.getElementById('scene'), g = cv.getContext('2d');
+g.imageSmoothingEnabled = false;
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const ease = (u) => (u = clamp(u, 0, 1), u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2);
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => v / 16);
+const bay = (x, y) => BAYER[((y & 3) * 4) + (x & 3)];
+function hash(x, y, s) {
+  let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(s | 0, 982451653)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+function vnoise(x, y, s) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash(xi, yi, s), b = hash(xi + 1, yi, s), c = hash(xi, yi + 1, s), d = hash(xi + 1, yi + 1, s);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+function fbm(x, y, s, o) { let r = 0, a = 1, f = 1, n = 0; for (let i = 0; i < o; i++) { r += vnoise(x * f, y * f, s + i * 31) * a; n += a; a *= .5; f *= 2; } return r / n; }
+const RGB = {};
+function rgb(h) { if (!RGB[h]) { const n = parseInt(h.slice(1), 16); RGB[h] = [n >> 16 & 255, n >> 8 & 255, n & 255]; } return RGB[h]; }
+
+// Pixelpuffer: Grafiken werden Pixel für Pixel gesetzt
+class PB {
+  constructor(w, h) { this.w = w; this.h = h; this.p = new Array(w * h).fill(null); }
+  set(x, y, c) { x = Math.floor(x); y = Math.floor(y); if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.p[y * this.w + x] = c; }
+  get(x, y) { x = Math.floor(x); y = Math.floor(y); return (x < 0 || y < 0 || x >= this.w || y >= this.h) ? null : this.p[y * this.w + x]; }
+  rect(x, y, w, h, c) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this.set(x + i, y + j, c); }
+  outline(c) {
+    const q = this.p.slice(), w = this.w, h = this.h;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (q[y * w + x]) continue;
+      if ((x > 0 && q[y * w + x - 1]) || (x < w - 1 && q[y * w + x + 1]) || (y > 0 && q[(y - 1) * w + x]) || (y < h - 1 && q[(y + 1) * w + x])) this.p[y * w + x] = c;
+    }
+  }
+  canvas() {
+    const c = document.createElement('canvas'); c.width = this.w; c.height = this.h;
+    const x = c.getContext('2d'), im = x.createImageData(this.w, this.h);
+    this.p.forEach((col, i) => { if (!col) return; const [r, gg, b] = rgb(col); im.data[i * 4] = r; im.data[i * 4 + 1] = gg; im.data[i * 4 + 2] = b; im.data[i * 4 + 3] = 255; });
+    x.putImageData(im, 0, 0);
+    return c;
+  }
+}
+const pick = (ramp, l) => ramp[l > .45 ? 0 : l > .1 ? 1 : l > -.25 ? 2 : 3];
+// schattierte Ellipse (Licht von links oben)
+function shadeE(pb, cx, cy, rx, ry, ramp, opt = {}) {
+  for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+    const nx = (x + .5 - cx) / rx, ny = (y + .5 - cy) / ry, d = nx * nx + ny * ny;
+    if (d > 1) continue;
+    if (opt.clip && !opt.clip(x, y)) continue;
+    let l = -(nx * .62 + ny * .55) * .9 + (1 - d) * .22 + (bay(x, y) - .5) * .3 + (opt.bias || 0);
+    if (opt.noise) l += (hash(x, y, opt.seed || 1) - .5) * opt.noise;
+    pb.set(x, y, pick(ramp, l));
+  }
+}
+
+/* ============================================================
+   Farbpaletten – kühler, verregneter Morgen
+   ============================================================ */
+const SKY = ['#4c5a6a', '#5b6a7a', '#6c7b89', '#7f8d98', '#939fa7', '#a6b0b5'];
+const SEA = ['#8196a0', '#64808e', '#4f6b7b', '#3e5868', '#314757', '#283b49'];
+const ROCK = ['#8d969b', '#737c82', '#5c656b', '#474f56'];
+const GRASS = ['#7a9562', '#61804f', '#4c6a42'];
+const WOOD = ['#8a6644', '#6c4d33', '#523a27', '#35251a'];
+const THATCH = ['#a39167', '#8a7a57', '#6f6146', '#544934'];
+const WARM = '#f6c96c';
+
+/* ============================================================
+   Statische Ebenen
+   ============================================================ */
+function layer(w, h, fn) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d'), im = x.createImageData(w, h);
+  for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
+    const col = fn(xx, yy);
+    if (!col) continue;
+    const i = (yy * w + xx) * 4, [r, gg, b] = rgb(col);
+    im.data[i] = r; im.data[i + 1] = gg; im.data[i + 2] = b; im.data[i + 3] = 255;
+  }
+  x.putImageData(im, 0, 0);
+  return c;
+}
+
+// Himmel mit Wolkenbänken und fernen Inseln (leichte Parallaxe)
+const SKY_W = 380;
+const skyCv = layer(SKY_W, HOR, (x, y) => {
+  let l = y / HOR * 5 + (bay(x, y) - .5) * .55;
+  const n = fbm(x / 70, y / 9, 3, 3);
+  if (n > .56 && y < HOR - 14) l -= 1.1;
+  if (n > .66 && y < HOR - 20) l -= .8;
+  // ferne, dunstige Inseln
+  const hill = HOR - 2 - Math.max(0, 7 - Math.abs(x - 70) * .16) * (1 + (vnoise(x / 6, 1, 7) - .5) * .5) - Math.max(0, 4 - Math.abs(x - 300) * .12);
+  if (y >= hill && hill < HOR - 2) return (y + x) % 2 ? '#7a8792' : '#738190';
+  return SKY[clamp(Math.round(l), 0, 5)];
+});
+
+// Meer: Grundfarbe von hell (Horizont) nach dunkel (vorne)
+const seaCv = layer(W, H - HOR, (x, y) => {
+  const f = y / (H - HOR);
+  const l = Math.pow(f, .75) * 5 + (bay(x, y) - .5) * .5;
+  return SEA[clamp(Math.round(l), 0, 5)];
+});
+
+/* ---------- Die Insel von Stufe 1: Klippen, Hütten, Steg ---------- */
+const IL_W = 300, IL_H = 86, WL = 64;   // WL = Wasserlinie innerhalb der Ebene
+const CHIMNEYS = [], WINDOWS = [];
+const island = (() => {
+  const pb = new PB(IL_W, IL_H);
+  // Höhenprofil der Klippen
+  const keys = [[34, 60], [40, 50], [56, 45], [72, 41], [82, 26], [92, 17], [112, 13], [130, 16], [150, 11], [168, 19], [178, 31], [194, 33], [206, 23], [224, 18], [242, 22], [256, 35], [266, 50], [272, 62]];
+  const top = new Array(IL_W).fill(999);
+  for (let k = 0; k < keys.length - 1; k++) {
+    const [x0, y0] = keys[k], [x1, y1] = keys[k + 1];
+    for (let x = x0; x <= x1; x++) top[x] = y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+  }
+  for (let x = 34; x <= 272; x++) top[x] = Math.round(top[x] + (vnoise(x / 4, 2, 5) - .5) * 4 + (hash(x, 0, 9) < .15 ? 1 : 0));
+  // Bauplätze einebnen
+  const HOUSES = [[90, 14], [116, 12], [140, 16], [212, 13], [229, 12]];
+  HOUSES.forEach(([hx, hw]) => { let m = 999; for (let x = hx - 1; x <= hx + hw; x++) m = Math.min(m, top[x]); for (let x = hx - 1; x <= hx + hw; x++) top[x] = m; });
+  // Fels
+  for (let x = 34; x <= 272; x++) {
+    for (let y = top[x]; y < WL; y++) {
+      const d = y - top[x];
+      const n = vnoise(x / 2.6, y / 8, 11);
+      let l = .55 - d / 42 + (n - .5) * .75 + (bay(x, y) - .5) * .25;
+      if (top[x] < top[x - 1] - 1) l += .2;           // nach links gewandte, hellere Kanten
+      if (top[x] > top[x + 1] + 1) l -= .2;
+      let c = pick(ROCK, l);
+      if (d > 4 && hash(x, y >> 2, 5) < .045) c = '#3d444a';    // Risse
+      if (y >= WL - 3) c = ROCK[3];                              // nasser Fuß
+      if (d < 2 || (d === 2 && hash(x, 7, 3) < .45) || (d === 3 && hash(x, 8, 3) < .15)) c = GRASS[d === 0 ? (hash(x, 1, 2) < .5 ? 0 : 1) : d === 1 ? 1 : 2];
+      pb.set(x, y, c);
+    }
+  }
+  // Hütten
+  function hut(x, base, w, seed) {
+    const wallH = 7, rh = Math.ceil(w / 2) + 1, cx = x + (w - 1) / 2;
+    for (let y = base - wallH; y < base; y++) for (let i = 0; i < w; i++) {
+      let c = (y - base) % 3 === 0 ? WOOD[3] : (i === 0 ? WOOD[0] : WOOD[1 + ((i + seed) % 4 === 0 ? 1 : 0)]);
+      pb.set(x + i, y, c);
+    }
+    pb.rect(x + 2, base - 5, 2, 5, '#24180f');                      // Tür
+    const wx = x + w - 5; pb.rect(wx - 1, base - 6, 4, 4, WOOD[3]); pb.rect(wx, base - 5, 2, 2, WARM);
+    WINDOWS.push([wx + 1, base - 4]);
+    for (let k = 0; k < rh; k++) {                                  // Satteldach aus Reet
+      const y = base - wallH - 1 - k, half = (w + 2) / 2 * (1 - k / rh);
+      for (let xx = Math.round(cx - half); xx <= Math.round(cx + half); xx++) {
+        let c = k % 2 ? THATCH[1] : THATCH[2];
+        if (xx < cx - half + 1.5) c = THATCH[0];
+        if (k === 0) c = THATCH[3];
+        pb.set(xx, y, c);
+      }
+    }
+    const chx = x + w - 4, chy = base - wallH - rh + 1;
+    pb.rect(chx, chy, 2, 4, '#5c656b'); pb.set(chx, chy, '#8d969b');
+    CHIMNEYS.push([chx + 1, chy - 1]);
+  }
+  HOUSES.forEach(([hx, hw], i) => hut(hx, top[hx] + 1, hw, i));
+  // Steg mit Pfählen und Pfahlhaus
+  for (let x = 0; x <= 48; x++) { pb.set(x, WL - 6, x % 4 === 0 ? WOOD[3] : WOOD[0]); pb.set(x, WL - 5, WOOD[2]); }
+  for (let x = 2; x <= 46; x += 7) pb.rect(x, WL - 4, 2, 10, x % 2 ? WOOD[2] : WOOD[3]);
+  pb.rect(0, WL - 10, 2, 4, WOOD[2]); pb.set(0, WL - 10, WOOD[0]);
+  hut(26, WL - 6, 13, 7);
+  // Fischgestell auf der flachen Schulter
+  pb.rect(44, WL - 16, 1, 8, WOOD[3]); pb.rect(56, WL - 19, 1, 9, WOOD[3]);
+  for (let x = 45; x < 56; x++) pb.set(x, WL - 16 - Math.round((x - 45) * 3 / 11), WOOD[2]);
+  [47, 50, 53].forEach(x => { const y = WL - 15 - Math.round((x - 45) * 3 / 11); pb.rect(x, y, 1, 3, '#b8c6cc'); pb.set(x, y + 2, '#8fa2aa'); });
+  pb.outline('#262c31');
+  return pb.canvas();
+})();
+
+/* ---------- Unser Boot: Blick über den Bug nach vorn ---------- */
+const BOW_Y = 118;
+const boat = (() => {
+  const pb = new PB(W, H - BOW_Y + 4);
+  const TX = 168, TY = 14;                                      // Bugspitze (in Ebenen-Koordinaten)
+  const sl = (20 - TX) / (72 - TY), sr = (320 - TX) / (72 - TY);
+  for (let y = TY; y < pb.h; y++) {
+    const xl = TX + (y - TY) * sl, xr = TX + (y - TY) * sr, rw = 2 + (y - TY) * .13;
+    for (let x = Math.floor(xl); x <= Math.ceil(xr); x++) {
+      if (x < xl || x > xr) continue;
+      let c;
+      if (x - xl < rw) c = (x - xl < rw * .45) ? '#b8936a' : WOOD[2];         // linke Reling
+      else if (xr - x < rw) c = (xr - x < rw * .45) ? '#9a7650' : WOOD[3];   // rechte Reling
+      else {
+        const u = (x + .5 - TX) / Math.max(1, (y - TY));
+        const k = (u + 3) * 3.1, fr = k - Math.floor(k);
+        c = fr < .14 ? '#2c1f15' : (Math.floor(k) % 2 ? WOOD[1] : WOOD[2]);
+        if (c !== '#2c1f15' && hash(x, y, 4) < .05) c = '#9a7a58';          // nasse Glanzstellen
+      }
+      pb.set(x, y, c);
+    }
+  }
+  // Steven mit Tauwerk
+  pb.rect(TX - 2, TY - 12, 4, 14, WOOD[2]); pb.rect(TX - 2, TY - 12, 1, 14, WOOD[0]); pb.rect(TX - 3, TY - 13, 6, 2, WOOD[3]);
+  for (let y = TY - 8; y < TY - 2; y += 2) pb.rect(TX - 3, y, 6, 1, '#c2a774');
+  // Taurolle auf dem Deck
+  for (let y = 46; y < 62; y++) for (let x = 96; x < 132; x++) {
+    const r = Math.hypot((x + .5 - 114) / 16, (y + .5 - 54) / 6.5);
+    if (r <= 1 && r > .35) pb.set(x, y, (Math.floor(r * 9) % 2) ? '#c2a774' : '#8e7650');
+  }
+  pb.outline('#1d140d');
+  return pb.canvas();
+})();
+
+/* ---------- Nebel: gestrichelte Pixelschwaden ---------- */
+function fogTex(w, h, seed, dens, sc, wall) {
+  return layer(w, h, (x, y) => {
+    const n = fbm(x / sc, y / 11, seed, 3);
+    let v = 1 - Math.abs((y - h * .55) / (h * .5)); v = Math.pow(clamp(v, 0, 1), .6);
+    if (wall) { v = clamp((1 - Math.abs((y - h * .5) / (h * .5))) * 2.3, 0, 1) * clamp(Math.min(x, w - x) / 45, 0, 1); }
+    const d = (n * dens - .2) * v;
+    if (d <= bay(x, y) * .85 + .04) return null;
+    return d > .8 ? '#e3e8e9' : d > .5 ? '#cfd7da' : '#b9c4c8';
+  });
+}
+const fogWallL = fogTex(220, 150, 21, 2.2, 36, true), fogWallR = fogTex(220, 150, 23, 2.2, 36, true);
+const fogA = fogTex(640, 70, 41, 1.45, 52);
+const fogB = fogTex(640, 46, 61, 1.35, 44);
+
+// Pixel-Vignette
+const vignette = layer(W, H, (x, y) => {
+  const e = Math.pow((x - 160) / 175, 2) + Math.pow((y - 90) / 108, 2);
+  return bay(x, y) < clamp((e - .5) * 1.3, 0, .75) ? '#07090c' : null;
+});
+// Hintergrund der Großaufnahme
+const closeBG = layer(W, H, (x, y) => {
+  const n = fbm(x / 60, y / 14, 77, 3);
+  const l = y / H * 3.2 + (n - .5) * 1.6 + (bay(x, y) - .5) * .5;
+  return ['#56616c', '#46515c', '#38424c', '#2c343c'][clamp(Math.round(l), 0, 3)];
+});
+
+/* ---------- Der Fischer auf dem Steg (klein) ---------- */
+function tpl(rows, pal) {
+  const pb = new PB(rows[0].length, rows.length);
+  rows.forEach((r, y) => [...r].forEach((ch, x) => { if (pal[ch]) pb.set(x, y, pal[ch]); }));
+  pb.outline('#1d140d');
+  return pb.canvas();
+}
+const FPAL = { Y: '#e3b04a', y: '#a8781f', S: '#d79a72', B: '#d4d2ca', D: '#3a2e26', L: '#3a2a18', F: '#ffd36b' };
+const FIG = [
+  tpl(['.........', '.........', '...YYY...', '..YYYYY..', '.yyyyyyy.', '...SSS...', '...BBB...', '..YYYYY..', '..YYYYYL.', '..YYYYYF.', '..YYYYYL.', '..yYYYy..', '..yy.yy..', '..DD.DD..', '..DD.DD..'], FPAL),
+  tpl(['.........', '.........', '...YYY...', '..YYYYY..', '.yyyyyyy.', '...SSS.L.', '...BBBYF.', '..YYYYYL.', '..YYYYY..', '..YYYYY..', '..YYYYY..', '..yYYYy..', '..yy.yy..', '..DD.DD..', '..DD.DD..'], FPAL),
+  tpl(['.......L.', '.......F.', '...YYY.L.', '..YYYYYY.', '.yyyyyyY.', '...SSSY..', '...BBB...', '..YYYYY..', '..YYYYY..', '..YYYYY..', '..YYYYY..', '..yYYYy..', '..yy.yy..', '..DD.DD..', '..DD.DD..'], FPAL)
+];
+const LANTERN_OFF = [[7, 9], [7, 6], [7, 1]];   // Flammenpunkt je Bild
+
+/* ---------- Porträt: der alte Fischer (64×80) ---------- */
+function portrait(eyes, mouth) {      // eyes: 0 offen, 1 zusammengekniffen, 2 zu
+  const pb = new PB(64, 80);
+  const HAT = ['#f6d36f', '#e3b04a', '#b9862c', '#80581a'];
+  const HAT_D = ['#c9952f', '#a8781f', '#80581a', '#5c3e10'];
+  const SKIN = ['#ecb892', '#d49672', '#b27350', '#7f4b34'];
+  const BEARD = ['#f0eee6', '#cfccc3', '#a6a39a', '#77746c'];
+  const NOSE = ['#f2b89a', '#dc8e6e', '#bb6c53', '#8a4836'];
+  // Nackenschutz des Südwesters (hinten)
+  shadeE(pb, 18, 42, 8.5, 15, HAT_D, { clip: (x, y) => y >= 28 });
+  // Ölzeug-Mantel
+  for (let y = 54; y < 80; y++) for (let x = 0; x < 64; x++) {
+    const nx = (x + .5 - 32) / 31, ny = (y + .5 - 88) / 31;
+    if (nx * nx + ny * ny > 1) continue;
+    let l = -nx * .75 + (bay(x, y) - .5) * .3 + .1;
+    if ((x + (y >> 1)) % 11 === 0 && y > 62) l -= .5;       // Falten
+    pb.set(x, y, pick(HAT, l));
+  }
+  shadeE(pb, 33, 61, 15, 5.5, HAT, { bias: .1 });            // Kragen
+  [[42, 68], [42, 74]].forEach(([x, y]) => { pb.rect(x, y, 3, 1, '#3a2a18'); pb.set(x, y - 1, '#f6d36f'); });
+  // Ohr und Gesicht
+  shadeE(pb, 19, 41, 3.2, 5, SKIN); pb.set(19, 41, SKIN[3]); pb.set(19, 42, SKIN[3]);
+  shadeE(pb, 31.5, 39, 13.5, 16.5, SKIN, { noise: .3, seed: 3 });
+  for (let x = 18; x < 46; x++) for (let y = 29; y < 33; y++) { const c = pb.get(x, y); if (SKIN.includes(c)) pb.set(x, y, SKIN[Math.min(3, SKIN.indexOf(c) + (y < 31 ? 2 : 1))]); }
+  // Wangen, Falten, Narbe
+  for (let y = -2; y <= 2; y++) for (let x = -2; x <= 2; x++) { if (x * x + y * y <= 4 && bay(x + 9, y + 9) < .5) { pb.set(24 + x, 43 + y, '#d6866c'); pb.set(40 + x, 42 + y, '#d6866c'); } }
+  pb.set(20, 37, SKIN[3]); pb.set(19, 38, SKIN[3]); pb.set(43, 37, SKIN[3]);
+  for (let k = 0; k < 5; k++) pb.set(40 + Math.round(k * .6), 38 + k, '#efc4a4');
+  // Augen und Brauen
+  const browDY = eyes === 1 ? 1 : 0;
+  pb.rect(23, 36, 6, 3, SKIN[2]); pb.rect(36, 36, 5, 3, SKIN[2]);
+  if (eyes === 0) {
+    pb.rect(24, 36, 4, 1, '#4a2c20');
+    pb.set(24, 37, '#e9e4d6'); pb.set(25, 37, '#4f7484'); pb.set(26, 37, '#1d2a30'); pb.set(27, 37, '#e9e4d6');
+    pb.rect(37, 36, 3, 1, '#4a2c20');
+    pb.set(37, 37, '#e9e4d6'); pb.set(38, 37, '#1d2a30'); pb.set(39, 37, '#4f7484');
+    pb.rect(24, 38, 4, 1, SKIN[2]); pb.rect(37, 38, 3, 1, SKIN[2]);
+  } else if (eyes === 1) {
+    pb.rect(24, 37, 4, 1, '#3a2018'); pb.set(26, 37, '#1d2a30'); pb.rect(24, 38, 4, 1, SKIN[3]);
+    pb.rect(37, 37, 3, 1, '#3a2018'); pb.set(38, 37, '#1d2a30'); pb.rect(37, 38, 3, 1, SKIN[3]);
+  } else {
+    pb.rect(24, 37, 4, 1, SKIN[3]); pb.rect(37, 37, 3, 1, SKIN[3]);
+  }
+  const brow = (x0, x1, yb, innerRight) => {
+    for (let x = x0; x <= x1; x++) {
+      const t = (x - x0) / (x1 - x0), inner = innerRight ? t : 1 - t;
+      const y = yb + browDY + Math.round(inner * (1 + browDY));
+      pb.set(x, y, BEARD[1]); pb.set(x, y - 1, (x % 2) ? BEARD[2] : BEARD[0]); if (hash(x, y, 2) < .4) pb.set(x, y - 2, BEARD[2]);
+    }
+  };
+  brow(22, 28, 34, true); brow(35, 41, 34, false);
+  // Bart (mit Strähnen)
+  const inBeard = (x, y) => {
+    const e = (cx, cy, rx, ry) => Math.pow((x + .5 - cx) / rx, 2) + Math.pow((y + .5 - cy) / ry, 2) <= 1;
+    return (e(31.5, 54, 13.5, 11) || e(31.5, 61, 10, 9) || e(32, 68, 6, 4.5)) && y >= 44;
+  };
+  for (let y = 44; y < 74; y++) for (let x = 14; x < 50; x++) {
+    if (!inBeard(x, y)) continue;
+    let l = -((x - 31.5) / 13) * .6 - ((y - 56) / 14) * .5 + (bay(x, y) - .5) * .3;
+    if ((x * 3 + (y >> 1)) % 5 === 0) l -= .45;
+    pb.set(x, y, pick(BEARD, l));
+  }
+  // Schnurrbart
+  shadeE(pb, 27, 48, 6.2, 2.7, BEARD, { bias: .15 }); shadeE(pb, 37, 48, 6.2, 2.7, BEARD, { bias: -.05 });
+  pb.set(21, 49, BEARD[2]); pb.set(20, 50, BEARD[2]); pb.set(43, 49, BEARD[2]); pb.set(44, 50, BEARD[3]);
+  // Mund
+  if (mouth) { pb.rect(29, 50, 7, 2, '#2a140f'); pb.rect(30, 50, 3, 1, '#d8d0bc'); pb.rect(30, 52, 5, 1, '#8a4a3a'); }
+  else { pb.rect(29, 50, 7, 1, '#5a3024'); }
+  // Nase
+  shadeE(pb, 34.5, 43, 3.7, 4.2, NOSE);
+  for (let y = 34; y < 40; y++) pb.set(33, y, SKIN[1]);
+  pb.set(34, 39, SKIN[2]); pb.set(36, 46, '#6a3426'); pb.set(33, 46, '#6a3426'); pb.set(33, 42, '#ffd6bc');
+  // Südwester: Krone und Krempe
+  shadeE(pb, 30, 21, 15, 10.5, HAT, { clip: (x, y) => y <= 29 });
+  for (let x = 17; x < 44; x++) if (pb.get(x, 24 + Math.round(Math.abs(x - 30) * .12))) pb.set(x, 24 + Math.round(Math.abs(x - 30) * .12), HAT[2]);
+  for (let y = 22; y < 37; y++) for (let x = 4; x < 60; x++) {
+    const cy = 29 + (x - 32) * .09, ny = (y + .5 - cy) / 4.3, nx = (x + .5 - 32) / 26;
+    if (nx * nx + ny * ny > 1) continue;
+    const under = y + .5 > cy + 1;
+    let l = (under ? -.6 : .25) - nx * .45 + (bay(x, y) - .5) * .3;
+    pb.set(x, y, pick(under ? HAT_D : HAT, l));
+  }
+  [[22, 15], [35, 13], [41, 19], [12, 28], [50, 30]].forEach(([x, y]) => pb.set(x, y, '#fff3c4'));   // Regentropfen
+  pb.outline('#22160f');
+  return pb.canvas();
+}
+const PORTRAIT = {};
+for (const e of [0, 1, 2]) for (const m of [0, 1]) PORTRAIT[e + '' + m] = portrait(e, m);
+
+/* ============================================================
+   Zeichnen
+   ============================================================ */
+function camX(t) { return 150 * ease(t / 11); }
+function disc(ctx, cx, cy, r, col) {
+  ctx.fillStyle = col;
+  for (let y = -Math.ceil(r); y <= Math.ceil(r); y++) {
+    const half = Math.sqrt(Math.max(0, r * r - y * y));
+    if (half < .5) continue;
+    ctx.fillRect(Math.round(cx - half), Math.round(cy + y), Math.round(half * 2), 1);
+  }
+}
+function glow(ctx, x, y, r, a) {
+  const gr = ctx.createRadialGradient(x, y, 0, x, y, r);
+  gr.addColorStop(0, `rgba(255,205,110,${a})`); gr.addColorStop(1, 'rgba(255,205,110,0)');
+  ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = gr; ctx.fillRect(x - r, y - r, r * 2, r * 2); ctx.globalCompositeOperation = 'source-over';
+}
+function drawTiled(ctx, img, x, y, alpha) {
+  if (alpha <= 0) return;
+  ctx.globalAlpha = alpha;
+  const w = img.width; let sx = ((x % w) + w) % w - w;
+  for (; sx < W; sx += w) ctx.drawImage(img, Math.round(sx), Math.round(y));
+  ctx.globalAlpha = 1;
+}
+function rain(ctx, time, n, big) {
+  ctx.fillStyle = big ? 'rgba(200,212,218,.55)' : 'rgba(178,192,200,.5)';
+  for (let i = 0; i < n; i++) {
+    const sp = (big ? 260 : 170) + hash(i, 1, 3) * 70;
+    const y = ((hash(i, 2, 3) * 220 + time * sp) % 220) - 20;
+    const x = ((hash(i, 3, 3) * 380 - y * .3 - time * 12) % 360 + 360) % 360 - 20;
+    ctx.fillRect(Math.round(x), Math.round(y), 1, big ? 5 : 3);
+  }
+}
+
+// Weite Einstellung: Meer, Insel, Rauch, Nebel, Boot
+function renderWide(ctx, o) {
+  const { time, cam, fog, smoke, fig, boatOn = true } = o;
+  ctx.drawImage(skyCv, Math.round(-cam * .12 - 10), 0);
+  ctx.drawImage(seaCv, 0, HOR);
+  // Wellenkämme
+  for (let row = 0, y = HOR + 2; y < H; row++) {
+    const f = (y - HOR) / (H - HOR), gap = 2 + Math.floor(f * 5);
+    const par = .35 + f * 1.1, off = cam * par + time * (3 + f * 9), spacing = 16 + f * 26;
+    for (let i = 0; i < 24; i++) {
+      const x = ((i * spacing + hash(row, i, 8) * spacing * .8 - off) % (W + 40) + W + 40) % (W + 40) - 20;
+      const len = Math.round(2 + f * 7 * hash(row, i, 9)), ph = Math.sin(time * 1.6 + i + row) > -.2;
+      if (!ph) continue;
+      ctx.fillStyle = f < .25 ? '#93a8b1' : '#7d97a3';
+      ctx.fillRect(Math.round(x), y, len, 1);
+      if (f > .35) { ctx.fillStyle = '#243644'; ctx.fillRect(Math.round(x) + 1, y + 1, len, 1); }
+    }
+    y += gap;
+  }
+  const IX = Math.round(145 - cam * .6), IY = HOR - WL;
+  // Spiegelung der Insel
+  ctx.globalAlpha = .2;
+  for (let r = 0; r < 22; r++) ctx.drawImage(island, 0, WL - 1 - r, IL_W, 1, IX + Math.round(Math.sin(r * .9 + time * 2.4) * 1.2), HOR + r, IL_W, 1);
+  ctx.globalAlpha = 1;
+  for (const [wx, wy] of WINDOWS) if (wy > WL - 12) { ctx.fillStyle = 'rgba(246,201,108,.45)'; for (let k = 0; k < 3; k++) ctx.fillRect(IX + wx - 1 + Math.round(Math.sin(time * 3 + k) * 1), HOR + 3 + k * 2, 3 - (k > 1 ? 1 : 0), 1); }
+  ctx.drawImage(island, IX, IY);
+  // Gischt am Fuß der Klippen
+  ctx.fillStyle = '#c9d6d9';
+  for (let x = 34; x < 272; x++) if (hash(x, Math.floor(time * 3), 4) < .45) ctx.fillRect(IX + x, HOR, 1, 1);
+  // Fenster flackern leicht
+  for (const [wx, wy] of WINDOWS) if (Math.sin(time * 7 + wx) > .7) { ctx.fillStyle = '#ffe2a0'; ctx.fillRect(IX + wx - 1, IY + wy - 1, 1, 1); }
+  // Fischer auf dem Steg
+  if (fig != null) {
+    const fx = IX + 6, fy = IY + WL - 6 - 15;
+    ctx.drawImage(FIG[fig], fx, fy);
+    const [lx, ly] = LANTERN_OFF[fig], fl = .5 + Math.sin(time * 11) * .08 + Math.sin(time * 17) * .05;
+    glow(ctx, fx + lx + .5, fy + ly + .5, fig === 2 ? 16 : 10, fl);
+    ctx.fillStyle = 'rgba(255,211,107,.55)';
+    for (let k = 0; k < 4; k++) ctx.fillRect(fx + lx - 1 + Math.round(Math.sin(time * 4 + k * 1.7)), HOR + 2 + k * 2, 3, 1);
+  }
+  // Nebel: Wand vor der Insel teilt sich, Schwaden ziehen
+  const part = fog;
+  if (part < 1) {
+    const wa = 1 - part, split = part * 120;
+    ctx.globalAlpha = wa;
+    ctx.drawImage(fogWallL, IX - 60 - split, IY - 40);
+    ctx.drawImage(fogWallR, IX + 110 + split, IY - 40);
+    ctx.globalAlpha = 1;
+  }
+  // Rauchsäulen
+  if (smoke > 0) {
+    for (let c = 0; c < CHIMNEYS.length; c++) {
+      const [cx, cy] = CHIMNEYS[c], N = 12;
+      for (let i = 0; i < N; i++) {
+        const p = ((time * .2 + i / N + c * .37) % 1), born = time - p / .2;
+        if (born < 2.2) continue;
+        const a = (1 - p * .8) * smoke * clamp((born - 2.2) / 1, 0, 1) * clamp(fog + p * 4 - .3, 0, 1);
+        if (a <= .02) continue;
+        const sx = IX + cx + Math.sin(p * 5 + i + c) * 1.6 + p * 12, sy = IY + cy - p * 56;
+        ctx.globalAlpha = a;
+        disc(ctx, sx, sy, 1.5 + p * 5, p < .3 ? '#6b747a' : p < .65 ? '#80898f' : '#98a1a6');
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  drawTiled(ctx, fogA, -cam * .55 - time * 6, HOR - 46, .85 - part * .55);
+  drawTiled(ctx, fogB, -cam * .9 - time * 11, HOR - 12, .75 - part * .45);
+  if (boatOn) ctx.drawImage(boat, 0, BOW_Y + Math.round(Math.sin(time * 1.5) * 1.5 + .5));
+}
+
+// Einstellung 4: Steg in dreifacher Pixelgröße, Himmel und Meer bleiben fein
+function renderPier(t, lt, fig) {
+  const S = 3, HZ = 128, drift = Math.round(lt * 3);
+  g.fillStyle = SKY[0]; g.fillRect(0, 0, W, H);
+  g.drawImage(skyCv, -40, HZ - HOR);
+  g.drawImage(seaCv, 0, 0, W, H - HOR, 0, HZ, W, H - HOR);
+  for (let row = 0, y = HZ + 2; y < H; row++) {
+    const f = (y - HZ) / (H - HZ);
+    for (let i = 0; i < 18; i++) {
+      const x = ((i * 26 + hash(row, i, 8) * 20 - t * (5 + f * 10)) % 360 + 360) % 360 - 20;
+      if (Math.sin(t * 1.6 + i + row) < -.2) continue;
+      g.fillStyle = '#7d97a3'; g.fillRect(Math.round(x), y, Math.round(2 + f * 8 * hash(row, i, 9)), 1);
+    }
+    y += 2 + Math.floor(f * 4);
+  }
+  drawTiled(g, fogA, -t * 6, HZ - 52, .45);
+  const dx = 70 - drift, dy = HZ + 6 - WL * S;
+  // Rauch aus dem Pfahlhaus
+  const [cx, cy] = CHIMNEYS[CHIMNEYS.length - 1];
+  for (let i = 0; i < 10; i++) {
+    const p = (t * .18 + i / 10) % 1;
+    g.globalAlpha = (1 - p) * .8;
+    disc(g, dx + (cx + p * 8 + Math.sin(p * 5 + i) * 1.4) * S, dy + (cy - p * 30) * S, 3 + p * 9, p < .4 ? '#6b747a' : '#8a9399');
+  }
+  g.globalAlpha = 1;
+  g.drawImage(island, 0, 0, IL_W, IL_H, dx, dy, IL_W * S, IL_H * S);
+  const fx = dx + 6 * S, fy = dy + (WL - 21) * S;
+  g.drawImage(FIG[fig], 0, 0, 9, 15, fx, fy, 27, 45);
+  const [lx, ly] = LANTERN_OFF[fig], fl = .55 + Math.sin(t * 11) * .08 + Math.sin(t * 17) * .05;
+  glow(g, fx + (lx + .5) * S, fy + (ly + .5) * S, fig === 2 ? 46 : 30, fl);
+  g.fillStyle = 'rgba(255,211,107,.5)';
+  for (let k = 0; k < 5; k++) g.fillRect(fx + lx * S - 3 + Math.round(Math.sin(t * 4 + k * 1.7) * 2), HZ + 10 + k * 4, 8 - k, 1);
+  drawTiled(g, fogB, -t * 14, HZ - 8, .35);
+}
+function bars(ctx, h) { if (h <= 0) return; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, h); ctx.fillRect(0, H - h, W, h); }
+function black(ctx, a) { if (a <= 0) return; ctx.fillStyle = `rgba(0,0,0,${clamp(a, 0, 1)})`; ctx.fillRect(0, 0, W, H); }
+
+const off = document.createElement('canvas'); off.width = W; off.height = H;
+const octx = off.getContext('2d'); octx.imageSmoothingEnabled = false;
+
+// Cutscene-Bild zum Zeitpunkt t (Sekunden)
+function renderCut(t) {
+  g.imageSmoothingEnabled = false;
+  if (t < T_SHOT4) {
+    // Einstellungen 1–3: Bug, Nebel, Rauch, Nebel reißt auf
+    renderWide(g, { time: t, cam: camX(t), fog: ease((t - T_FOG) / 3.5), smoke: clamp((t - 2.6) / 2, 0, 1), fig: t > 9.5 ? 0 : null });
+    rain(g, t, 150, false);
+    g.globalAlpha = .55; g.drawImage(vignette, 0, 0); g.globalAlpha = 1;
+    bars(g, BAR);
+    black(g, 1 - t / 1.2);
+  } else if (t < T_SHOT5) {
+    // Einstellung 4: harter Schnitt, doppelte Pixelgröße auf den Steg – die Laterne wird gehoben
+    const lt = t - T_SHOT4, fig = lt < .55 ? 0 : lt < 1 ? 1 : 2;
+    renderPier(t, lt, fig);
+    rain(g, t, 110, true);
+    g.globalAlpha = .55; g.drawImage(vignette, 0, 0); g.globalAlpha = 1;
+    bars(g, BAR);
+  } else {
+    // Einstellung 5: Großaufnahme, misstrauischer Blick
+    const lt = t - T_SHOT5;
+    g.drawImage(closeBG, 0, 0);
+    glow(g, 268, 70, 60, .22); glow(g, 40, 150, 40, .12);
+    const eyes = lt < .55 ? 0 : (lt < .68 ? 2 : 1);
+    g.drawImage(PORTRAIT[eyes + '0'], 0, 0, 64, 80, 96, 6 - Math.round(ease(lt / 2) * 2), 128, 160);
+    glow(g, 236, 96, 34, .16 + Math.sin(t * 11) * .03);
+    rain(g, t, 90, true);
+    g.globalAlpha = .55; g.drawImage(vignette, 0, 0); g.globalAlpha = 1;
+    bars(g, BAR);
+    black(g, (t - T_FADE) / .6);
+  }
+}
+
+/* ---------- Dialog ---------- */
+const LINES = [
+  'Halt! Keinen Schritt weiter auf meinen Steg.',
+  'Vom Meer kommt nichts Gutes. Das weiß hier jedes Kind.',
+  'Seit der Nacht, in der die Lampe dunkel blieb, liegen unsere Felder da unten. Und die, die drauf gewohnt haben.',
+  'Du bist kein Fischer. Viel zu weiche Hände. … Woher kommst du überhaupt?',
+  'Pah. Wir handeln, mehr nicht. Bring Holz, dann reden wir weiter.',
+  'Und halt die Augen offen. Da draußen gibt es noch mehr als uns.'
+];
+const BOX = { x: 50, y: 128, w: 266, h: 48 };
+function drawBox(ctx, dy, arrow) {
+  const { x, w, h } = BOX, y = BOX.y + dy;
+  ctx.fillStyle = '#1a0f07'; ctx.fillRect(x + 1, y + 2, w, h);
+  ctx.fillStyle = '#5c3a1b'; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#8a5a2e'; ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
+  ctx.fillStyle = '#e8b45c'; ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+  ctx.fillStyle = '#fbf0d4'; ctx.fillRect(x + 3, y + 3, w - 6, h - 6);
+  ctx.fillStyle = '#f1dfb4';
+  for (let yy = y + 3; yy < y + h - 3; yy++) for (let xx = x + 3; xx < x + w - 3; xx++) if (hash(xx, yy, 12) < .05) ctx.fillRect(xx, yy, 1, 1);
+  ctx.fillStyle = '#5c3a1b'; [[x + 4, y + 4], [x + w - 5, y + 4], [x + 4, y + h - 5], [x + w - 5, y + h - 5]].forEach(([a, b]) => ctx.fillRect(a, b, 1, 1));
+  // Namensschild
+  const nx = 66, ny = 119 + dy;
+  ctx.fillStyle = '#3a2414'; ctx.fillRect(nx - 1, ny - 1, 64, 14);
+  ctx.fillStyle = '#7a4a28'; ctx.fillRect(nx, ny, 62, 12);
+  ctx.fillStyle = '#a87444'; ctx.fillRect(nx, ny, 62, 1);
+  ctx.fillStyle = '#5c3a1b'; ctx.fillRect(nx, ny + 11, 62, 1);
+  if (arrow) {
+    const ax = x + w - 12, ay = y + h - 9 + (Math.floor(performance.now() / 300) % 2);
+    ctx.fillStyle = '#8a5a2e';
+    for (let k = 0; k < 3; k++) ctx.fillRect(ax + k, ay + k, 5 - k * 2, 1);
+  }
+}
+
+const state = { mode: 'cut', start: 0, line: 0, chars: 0, wait: 0, dStart: 0, lastNow: 0 };
+const elText = document.getElementById('text'), elName = document.getElementById('name'), elSkip = document.getElementById('skip'), elEnd = document.getElementById('end');
+
+function renderDialog(now) {
+  const el = now - state.dStart;
+  renderWide(g, { time: T_SHOT4 + el, cam: camX(11), fog: 1, smoke: 1, fig: 1, boatOn: false });
+  rain(g, now, 150, false);
+  g.globalAlpha = .55; g.drawImage(vignette, 0, 0); g.globalAlpha = 1;
+  g.fillStyle = 'rgba(10,14,20,.35)'; g.fillRect(0, 0, W, H);
+  const intro = clamp(el / .6, 0, 1);
+  bars(g, Math.round(BAR * (1 - intro)));
+  const dy = Math.round((1 - ease(intro)) * 60);
+  const typing = state.chars < LINES[state.line].length;
+  drawBox(g, dy, !typing && intro >= 1);
+  const blink = (now % 3.7) < .13, talk = typing && state.wait <= 0 && Math.floor(now * 11) % 2 === 0;
+  g.drawImage(PORTRAIT[(blink ? 2 : 0) + '' + (talk ? 1 : 0)], 0, 100 + dy);
+  black(g, 1 - el / .5);
+  elName.hidden = intro < 1;
+  elText.textContent = intro < 1 ? '' : LINES[state.line].slice(0, Math.floor(state.chars));
+}
+
+function enterDialog(now) {
+  state.mode = 'dialog'; state.dStart = now; state.line = 0; state.chars = 0; state.wait = .9;
+  elSkip.hidden = true;
+}
+function advance() {
+  if (state.mode === 'cut') return;
+  if (state.mode !== 'dialog' || performance.now() / 1000 - state.dStart < .7) return;
+  const full = LINES[state.line].length;
+  if (state.chars < full) { state.chars = full; return; }
+  if (state.line < LINES.length - 1) { state.line++; state.chars = 0; state.wait = .15; return; }
+  state.mode = 'end'; elEnd.hidden = false; elName.hidden = true; elText.textContent = '';
+  document.getElementById('replay').focus();
+}
+function restart() {
+  state.mode = 'cut'; state.start = performance.now() / 1000;
+  elEnd.hidden = true; elSkip.hidden = false; elName.hidden = true; elText.textContent = '';
+  document.getElementById('stage').focus();
+}
+
+function frame(ms) {
+  const now = ms / 1000, dt = Math.min(.1, now - (state.lastNow || now));
+  state.lastNow = now;
+  if (state.mode === 'cut') {
+    const t = now - state.start;
+    if (t >= T_END) enterDialog(now); else renderCut(t);
+  }
+  if (state.mode === 'dialog') {
+    const line = LINES[state.line];
+    if (now - state.dStart > .6 && state.chars < line.length) {
+      if (state.wait > 0) state.wait -= dt;
+      else {
+        const before = Math.floor(state.chars);
+        state.chars = Math.min(line.length, state.chars + dt * 42);
+        const ch = line[Math.floor(state.chars) - 1];
+        if (Math.floor(state.chars) > before && ch) state.wait = '.!?'.includes(ch) ? .28 : ch === ',' || ch === ':' ? .12 : 0;
+      }
+    }
+    renderDialog(now);
+  }
+  if (state.mode === 'end') renderDialog(now);
+  requestAnimationFrame(frame);
+}
+
+const stage = document.getElementById('stage');
+stage.addEventListener('click', (e) => { if (e.target.closest('button')) return; advance(); });
+stage.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.target.closest('button')) { e.preventDefault(); advance(); } });
+elSkip.addEventListener('click', (e) => { e.stopPropagation(); enterDialog(performance.now() / 1000); stage.focus(); });
+document.getElementById('replay').addEventListener('click', (e) => { e.stopPropagation(); restart(); });
+
+// Zum Prüfen einzelner Bilder: window.__cs.seek(t)
+window.__cs = {
+  seek(t) {
+    state.mode = 'paused';
+    if (t < T_END) { renderCut(t); elSkip.hidden = false; }
+    else { const now = 100; state.dStart = now - 2; state.line = Math.min(LINES.length - 1, Math.floor(t - T_END)); state.chars = 999; state.wait = 0; renderDialog(now); }
+  }
+};
+
+const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+state.start = performance.now() / 1000;
+if (reduce) enterDialog(performance.now() / 1000);
+requestAnimationFrame(frame);
+stage.focus({ preventScroll: true });
+</script>
+
+</body>
+</html>
