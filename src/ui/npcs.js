@@ -26,6 +26,9 @@ import { renderInsights } from './insights.js';
 import { holdsHTML, shipAction } from './ships.js';
 import { centerOnTile } from '../gfx/camera.js';
 import { coinsHTML } from './market.js';
+import { RELICS, RELIC_TIERS, RELIC_SOURCES } from '../data/relics.js';
+import { fxLines } from '../sim/relics.js';
+import { tierTag } from './relics.js';
 
 const nw = { npc: null };
 const LVL_NAME = { misstrauisch: 'Misstrauisch', neutral: 'Neutral', freundlich: 'Freundlich', vertraut: 'Vertraut' };
@@ -72,6 +75,14 @@ function sellsHTML(id, N, s) {
       + `<button class="btn btn-paper btn-xs" data-sact="load" data-ship="${s.id}" data-it="${e.it}" data-n="-1" ${room && st ? '' : 'disabled'}>Alles</button>` : '';
     return `<div class="lrow${ok ? '' : ' soon'}">${img(SPR.item[e.it], 2)}<span class="grow xs"><b>${ITEMS[e.it].name}</b>${ok ? ` &middot; ${img(SPR.icon.coin, 1)}${price(p)} &middot; <span class="muted">${fmt(st)} da</span>` : ''}</span>${ok ? btns : lockTag(e.lvl)}</div>`;
   }).join('');
+  // Relikt im Angebot (0.24.0, data/relics.js RELIC_SOURCES.npc): eins je Tag, kommt in die Reliktsammlung
+  const RS = RELIC_SOURCES.npc[id];
+  if (RS) {
+    const ok = lvlOk(N, RS.lvl), O = N.relic, D = O && RELICS[O.id];
+    h += `<div class="lrow${ok ? '' : ' soon'}"${D ? ` data-tip="relic:${O.id}"` : ''}>${img(D ? SPR.relic[O.id] : SPR.icon.relic, 2)}<span class="grow xs"><b>${D ? esc(D.name) : `${RELIC_TIERS[RS.tier].name}es Relikt`}</b> ${tierTag(RS.tier)}`
+      + (ok ? D ? ` &middot; ${img(SPR.icon.coin, 1)}${fmt(O.price)}<br><span class="muted">${esc(fxLines(D.fx).join(' · '))}</span>` : '<br><span class="muted">Heute keins mehr. Morgen vielleicht wieder.</span>' : '') + '</span>'
+      + (ok ? D ? `<button class="btn btn-green btn-xs" data-nv="buy" data-npc="${id}" data-key="relic" ${s && (game.state.coins | 0) >= O.price ? '' : 'disabled'} title="${s ? '' : 'Ein Schiff muss am Steg liegen'}">Kaufen</button>` : '' : lockTag(RS.lvl)) + '</div>';
+  }
   const C = T.chart;
   if (C) {
     const ok = lvlOk(N, C.lvl);
@@ -95,7 +106,7 @@ function ordersHTML(id, N, s) {
     return `<div class="tord buy"><div class="row">${img(SPR.item[o.it], 2)}<span class="grow xs"><b>${fmt(o.n)} ${ITEMS[o.it].name}</b> &middot; ${fmt(o.got)} geliefert</span>
       <button class="btn btn-green btn-xs" data-nv="deliver" data-npc="${id}" data-oid="${o.id}" ${s && have ? '' : 'disabled'} title="${s ? have ? `${fmt(have)} an Bord` : 'nichts davon an Bord' : 'kein Schiff am Steg'}">Liefern</button></div>
       <div class="minibar"><span style="width:${o.got / o.n * 100}%"></span></div>
-      <div class="xs muted">Belohnung ${img(SPR.icon.coin, 1)}${fmt(o.pay)} und +${o.rep} Ruf &middot; ${dueText(o.due)}</div></div>`;
+      <div class="xs muted">Belohnung ${img(SPR.icon.coin, 1)}${fmt(o.pay)} und +${o.rep} Ruf${o.relic && RELICS[o.relic] ? ` <span data-tip="relic:${o.relic}">und ${img(SPR.relic[o.relic], 1)} <b>${esc(RELICS[o.relic].name)}</b></span>` : ''} &middot; ${dueText(o.due)}</div></div>`;
   }).join('') + '<div class="xs muted" style="margin-top:3px">Auch „Entladen“ und Routen liefern zuerst an offene Aufträge. Läuft ein Auftrag ab, zahlt das Volk nur für das Gelieferte.</div>';
 }
 /* ---------- Lieferverträge ---------- */

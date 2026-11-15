@@ -12,6 +12,7 @@
    ========================================================= */
 import { BELL, DIVE, DIVE_PLACEHOLDER, SPOT_KINDS } from '../data/dive.js';
 import { ITEMS } from '../data/items.js';
+import { RELICS } from '../data/relics.js';
 import { img, fitScale } from '../gfx/pixelbuffer.js';
 import { SPR } from '../gfx/sprites.js';
 import { esc, fmt } from '../util/format.js';
@@ -78,6 +79,7 @@ export function onDiveEvent(ev) {
       if (ev.got.length) parts.push(`an Bord: ${lootText(ev.got)}`);
       if (ev.home.length) parts.push(`ins Lager der Heimatinsel: ${lootText(ev.home)}`);
       if (ev.lost.length) parts.push(`<b>kein Platz</b> für ${lootText(ev.lost)}`);
+      if (ev.relic && RELICS[ev.relic]) parts.push(`Relikt: ${img(SPR.relic[ev.relic], 1)} <b>${esc(RELICS[ev.relic].name)}</b> (Relikte, L)`);
       toast(`${bellIc()}<span><b>Tauchgang geschafft!</b> ${parts.join(' &middot; ') || 'Nichts Brauchbares.'}<br><span class="xs muted">Der Spot ist weg. Bald blubbert es woanders.</span></span>`, 'gold', true);
       return;
     }

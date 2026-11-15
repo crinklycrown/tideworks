@@ -8,7 +8,7 @@
 import { TECH, TECH_BY_ID } from '../data/tech.js';
 import { GOALS } from '../data/goals.js';
 import { FAME_TECH, FAME_GOAL } from '../data/mining.js';
-import { totalRes, pst, actor, isSep, myIsl, seatedPids, planOk } from './state.js';
+import { totalRes, pst, actor, isSep, myIsl, seatedPids, planOk, actOk } from './state.js';
 import { flowAdd } from './stats.js';
 import { fitHolds } from './ships.js';
 import { coinAdd } from './coins.js';
@@ -19,8 +19,8 @@ export function levelInfo(xp) {
   return { level, cur: rest, need };
 }
 export function addFame(g, n, pid) { const P = pst(g, pid); P.xp += n; P.xpTotal += n; }
-// Voraussetzungen: vorher nötige Forschungen und (seit Version 15) der Plan eines Volks (T.plan, data/unlocks.js)
-export const reqMet = (g, T, pid) => { const tech = pst(g, pid).tech; return T.req.every(r => tech[r]) && planOk(g, T); };
+// Voraussetzungen: vorher nötige Forschungen, (seit Version 15) der Plan eines Volks (T.plan, data/unlocks.js), (seit 0.24.0) der Akt (T.act)
+export const reqMet = (g, T, pid) => { const tech = pst(g, pid).tech; return T.req.every(r => tech[r]) && planOk(g, T) && actOk(g, T); };
 // Getrennte Inseln: Bestand nur der eigenen Inseln (auf dem Spiegel stehen ohnehin nur die eigenen Lager voll)
 const resOf = (g, r, pid) => isSep(g) && !g.mirror ? totalRes(g, r, pid || actor(g)) : totalRes(g, r);
 export function canResearch(g, T, pid) {

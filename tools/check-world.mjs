@@ -52,10 +52,10 @@ function startPrint(seed) {
   const fog = [...g.fog.m.keys()].sort((a, b) => a - b).map(k => k + ':' + g.fog.encode(k)).join('|');
   // ohne Versionsnummer und ohne Freischaltungen (v15, beim Start leer); ohne Geschichte, NPC-Zellen und Dorf (v16):
   // Dorf-Gebäude bekommen ihre Ids nach den Startgebäuden, nextId zählt sie deshalb wieder ab; ohne Handel mit den Völkern (v17);
-  // Leuchtturm ohne die Baustellen-Felder von 0.18.0 (got, lager, acc); ohne Taucherglocke und Tauchspot (0.19.0)
+  // Leuchtturm ohne die Baustellen-Felder von 0.18.0 (got, lager, acc); ohne Taucherglocke und Tauchspot (0.19.0); ohne Reliktsammlung (0.24.0, beim Start leer)
   const npcB = [...g.blds.values()].filter(b => b.npc), isl = Object.assign({}, g.state.isl);
   for (const b of npcB) delete isl[b.isl];
-  const st = Object.assign({}, g.state, { flow: null, v: null, unl: undefined, story: undefined, npcs: undefined, npc: undefined, dive: undefined, nextId: g.state.nextId - npcB.length, isl,
+  const st = Object.assign({}, g.state, { flow: null, v: null, unl: undefined, story: undefined, npcs: undefined, npc: undefined, dive: undefined, relics: undefined, nextId: g.state.nextId - npcB.length, isl,
     wonder: (({ ph, pb, pt, id, doneAt }) => ({ ph, pb, pt, id, doneAt }))(g.state.wonder) });
   return fnvS(fnvS(fnvS(2166136261, JSON.stringify([...g.blds.values()].filter(b => !b.npc))), fog), JSON.stringify(st)).toString(16);
 }

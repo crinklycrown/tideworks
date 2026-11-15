@@ -45,6 +45,7 @@ import { talk, storySeen, storyChoice, storyDebug, storyTick } from './story.js'
 import { npcTick, npcBuy, npcDeliver, npcDeal, npcRepDebug } from './npc.js';
 import { npcPort } from './villages.js';
 import { diveTick, mountBell, diveStart, diveEnd, diveDebug } from './dive.js';
+import { relicTick, relicPut, relicTake, relicDebug } from './relics.js';
 
 const TICKS = Object.assign({}, LOGISTICS_TICKS, PRODUCTION_TICKS);
 
@@ -69,7 +70,7 @@ export function sim(g, dt) {
   wonderTick(g, dt);
   // Etwa einmal pro Sekunde: Ziele, Strom-Anzeige, Tor-Automatik, Soll-Raten
   g._gt = (g._gt || 0) + dt;
-  if (g._gt >= GATE.every) { const span = g._gt; powerRoll(g, span); g._gt = 0; checkGoals(g); gateCheck(g); computeSoll(g); marketTick(g, span); evTick(g); coinTick(g); storyTick(g); npcTick(g, span); diveTick(g); }
+  if (g._gt >= GATE.every) { const span = g._gt; powerRoll(g, span); g._gt = 0; checkGoals(g); gateCheck(g); computeSoll(g); marketTick(g, span); evTick(g); coinTick(g); storyTick(g); npcTick(g, span); diveTick(g); relicTick(g); }
 }
 
 /* ---------- Bänder ziehen: gedrückt halten und ziehen, jedes Band zeigt in Zugrichtung ---------- */
@@ -265,7 +266,7 @@ const REC_KIND = { place: 'build', paint: 'build', remove: 'remove', removePipe:
 const READ_ONLY = new Set(['inspect', 'remove']);
 // Geschichte: „gesehen“ und die Entscheidung am Leuchtturm setzt nur der Host, ebenso die Story-Debug-Befehle.
 export const HOST_ONLY = new Set(['unlockAll', 'devUnlock', 'unlock', 'relock', 'evMode', 'event', 'coins', 'damage', 'trader', 'reveal', 'debugKontor', 'giveShip', 'debugDock', 'debugTime', 'give', 'cargo', 'player', 'coopSetup', 'dropUndo',
-  'storySeen', 'storyChoice', 'storyDebug', 'npcRep', 'wonderDebug', 'diveDebug']);
+  'storySeen', 'storyChoice', 'storyDebug', 'npcRep', 'wonderDebug', 'diveDebug', 'relicDebug']);
 // Rückgängig-Stapel eines Spielers (wird bei Bedarf angelegt)
 export function undoOf(g, pid) {
   let U = g.undos.get(pid);
@@ -461,6 +462,10 @@ function command(g, c) {
     case 'diveStart': diveStart(g, c); return;
     case 'diveEnd': diveEnd(g, c); return;
     case 'diveDebug': diveDebug(g, c); return;
+    // Relikte (0.24.0, sim/relics.js): einsetzen bzw. Ware des Füllhorns ändern, herausnehmen; Debug nur Host
+    case 'relicPut': relicPut(g, b, c); return;
+    case 'relicTake': relicTake(g, b); return;
+    case 'relicDebug': relicDebug(g, c); return;
     case 'storySeen': storySeen(g, c.ids); return;
     case 'storyChoice': storyChoice(g, String(c.c)); return;
     case 'storyDebug': storyDebug(g, c); return;

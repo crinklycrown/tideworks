@@ -20,6 +20,7 @@ import { layoutSoon } from './layout.js';
 import { toast } from './toasts.js';
 import { hooks, shipAction, startMove } from './ships.js';
 import { npcClick } from './npcs.js';
+import { pedestalClick } from './relics.js';
 import { nameIsland } from './islandname.js';
 import { marketClick, marketChange } from './market.js';
 
@@ -70,6 +71,7 @@ export function wirePanels() {
     }
     const b = game.blds.get(ui.selected);
     if (!b) return;
+    if (pedestalClick(a, b)) return;   // Reliktsockel (ui/relics.js)
     if (act === 'wire') { setMode({ kind: 'wire', from: b.id }); return; }
     if (act === 'nameIsl') { nameIsland(b.isl, false, () => renderAllUI(true)); return; }
     if (act === 'upgrade') { upgradeCmd(b); saveGame(); afterSync(() => renderAllUI(true)); return; }

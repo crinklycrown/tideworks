@@ -24,6 +24,7 @@ import { drawPower, addEnergy } from './power.js';
 import { pumpRate, madeFluid } from './fluids.js';
 import { spawnShip } from './ships.js';
 import { flowAdd, ioAdd } from './stats.js';
+import { fxProd, fxDrill, fxFurnace, fxCoal2Iron, fxHouse } from './relics.js';
 
 
 // Rezept-Gebäude: Zutaten werden beim Start eines Durchgangs aus dem Eingangspuffer genommen,
@@ -34,12 +35,15 @@ function tickRecipe(g, b, dt) {
   const R = recipeOf(b);
   b._act = false; b._pw = false; b._st = ''; b._wf = null;
   if (!R) return;
+  // Relikt „Ewige Glut“ (sim/relics.js): Öfen ohne Kohle (die Zutat entfällt) und ohne Strom (volle Geschwindigkeit)
+  const F = fxFurnace(g, b), noCoal = !!(F && F.coal);
   if (!b.run) {
     for (const it in R.out) if ((b.out[it] || 0) + R.out[it] > OUT_CAP) { b._st = 'full'; flush(g, b); return; }
     for (const f in R.fout || {}) if ((b.fo[f] || 0) + R.fout[f] > fluidCap(R.fout[f]) + 1e-9) { b._st = 'full'; flush(g, b); return; }
-    for (const it in R.in) if ((b.buf[it] || 0) < R.in[it]) { b._st = 'wait'; flush(g, b); return; }
-    for (const it in R.in) { b.buf[it] -= R.in[it]; flowAdd(g, b.isl, 'u', it, R.in[it], b.t); }
+    for (const it in R.in) if (!(noCoal && it === 'kohle') && (b.buf[it] || 0) < R.in[it]) { b._st = 'wait'; flush(g, b); return; }
+    for (const it in R.in) { if (noCoal && it === 'kohle') continue; b.buf[it] -= R.in[it]; flowAdd(g, b.isl, 'u', it, R.in[it], b.t); }
     b.run = true; b.prog = 0;
+    if (noCoal && R.in.kohle) b.nk = 1; else delete b.nk;   // nk = Durchgang ohne Kohle (beim Rezeptwechsel keine Kohle zurückgeben)
   }
   const P = recipePower(R);
   // Flüssigkeit für den größtmöglichen Schritt muss im Puffer liegen, sonst pausiert der Fortschritt (vor dem Strom, damit kein Strom verfällt)
@@ -47,11 +51,11 @@ function tickRecipe(g, b, dt) {
   for (const f in R.fin || {}) if ((b.fi[f] || 0) < R.fin[f] * most - 1e-9) { b._st = 'wait'; b._wf = f; flush(g, b); return; }
   let sp = 1;
   if (P.use) {
-    b._pw = drawPower(g, b, P.use * dt);
+    b._pw = F && F.power ? true : drawPower(g, b, P.use * dt);
     if (!b._pw && P.need) { b._st = 'power'; flush(g, b); return; }
     if (b._pw && !P.need) sp = OPT_BOOST;
   }
-  const step = Math.min(dt / R.t * sp * prodOf(g, ownerOf(b)), 1 - b.prog);
+  const step = Math.min(dt / R.t * sp * prodOf(g, ownerOf(b)) * fxProd(g, b.isl), 1 - b.prog);
   for (const f in R.fin || {}) b.fi[f] = Math.max(0, (b.fi[f] || 0) - R.fin[f] * step);
   b._act = true; b.prog += step;
   if (b.prog >= 1 - 1e-6) {
@@ -66,8 +70,8 @@ export function setRecipe(g, b, id) {
   const R = RECIPE_BY_ID[id];
   if (!R || R.b !== b.t || b.rc === id || !isUnlocked(g, 'rc:' + id, ownerOf(b))) return;   // Rezept erst nach seiner Freischaltung (tech = Forschung)
   const old = recipeOf(b);
-  if (b.run && old) for (const it in old.in) b.buf[it] = (b.buf[it] || 0) + old.in[it];
-  b.rc = id; b.run = false; b.prog = 0;
+  if (b.run && old) for (const it in old.in) if (!(b.nk && it === 'kohle')) b.buf[it] = (b.buf[it] || 0) + old.in[it];
+  b.rc = id; b.run = false; b.prog = 0; delete b.nk;
 }
 // Bohrer: Mehrheitsregel beim Bauen (sim/buildings.js drillInfo), Förderung = rate × Felder.
 // water = Kühlwasser/s (ohne Stillstand), lube = Schmiermittel vom Band (1 Stück je every Sekunden Betrieb; opt = auch ohne, boost = Zusatzleistung)
@@ -75,8 +79,10 @@ function tickDrill(g, b, dt) {
   const D = DRILLS[b.t], L = D.lube;
   b._act = false; b._pw = false; b._st = ''; b._lub = false;
   const lubed = L && ((b.lt || 0) > 0 || (b.buf[L.it] || 0) >= 1);
+  // Relikt „Stein der Wandlung“: Kohle kommt als Eisenerz an
+  const ot = b._ot === 'kohle' && fxCoal2Iron(g, b.isl) ? 'eisenerz' : b._ot;
   if (!b._ot) b._st = 'none';
-  else if ((b.out[b._ot] || 0) >= D.buf) b._st = 'full';
+  else if ((b.out[ot] || 0) >= D.buf) b._st = 'full';
   else if (D.water && (b.fi.wasser || 0) < D.water * dt - 1e-9) b._st = 'hot';
   else if (L && !L.opt && !lubed) b._st = 'lube';
   else if (D.power && !(b._pw = drawPower(g, b, D.power * dt))) b._st = 'power';
@@ -87,8 +93,8 @@ function tickDrill(g, b, dt) {
       b.lt -= dt; b._lub = true; f += L.boost || 0;
     }
     if (D.water) b.fi.wasser -= D.water * dt;
-    b._act = true; b.acc += D.rate * rateOf(g, b.t, ownerOf(b)) * b._oc * f * dt;
-    if (b.acc >= 1) { b.acc -= 1; addOut(g, b, b._ot, 1); }
+    b._act = true; b.acc += D.rate * rateOf(g, b.t, ownerOf(b)) * fxDrill(g, b.isl) * b._oc * f * dt;
+    if (b.acc >= 1) { b.acc -= 1; addOut(g, b, ot, 1); }
   }
   flush(g, b);
 }
@@ -125,15 +131,20 @@ function tickHouse(g, b, dt) {
   b.tm -= dt;
   if (b.tm <= 0) {
     b.tm = mods(g, ownerOf(b)).houseEvery;
-    const inv = islData(g, b.isl).inv, ok = Object.keys(H.need).every(r => (inv[r] || 0) >= H.need[r]);
+    // Relikte (sim/relics.js fxHouse): Verbrauch × f; Bruchteile sammeln sich je Haus in b.hc und werden ganzzahlig entnommen
+    const f = fxHouse(g, b.isl), need = {};
+    for (const r in H.need) need[r] = f === 1 ? H.need[r] : Math.floor((b.hc && b.hc[r] || 0) + H.need[r] * f + 1e-9);
+    const inv = islData(g, b.isl).inv, ok = Object.keys(need).every(r => (inv[r] || 0) >= need[r]);
     const room = (inv[H.gives] || 0) < capOf(g, b.isl);
     if (ok && room) {
-      for (const r in H.need) { inv[r] -= H.need[r]; flowAdd(g, b.isl, 'c', r, H.need[r], 'haeuser'); flowAdd(g, b.isl, 'u', r, H.need[r], 'haeuser'); }
+      if (f !== 1) { const hc = b.hc || (b.hc = {}); for (const r in H.need) hc[r] = Math.max(0, (hc[r] || 0) + H.need[r] * f - need[r]); }
+      else if (b.hc) delete b.hc;
+      for (const r in need) { if (!need[r]) continue; inv[r] -= need[r]; flowAdd(g, b.isl, 'c', r, need[r], 'haeuser'); flowAdd(g, b.isl, 'u', r, need[r], 'haeuser'); }
       inv[H.gives] = (inv[H.gives] || 0) + 1;
       flowAdd(g, b.isl, 'p', H.gives, 1, 'haeuser'); flowAdd(g, b.isl, 'm', H.gives, 1, 'haeuser');
       P.stats.made[H.gives] = (P.stats.made[H.gives] || 0) + 1;
       b.plans = (b.plans || 0) + 1;
-      if (g.inspect.has(b.id)) { for (const r in H.need) ioAdd(g, b, 'in', r, H.need[r]); ioAdd(g, b, 'out', H.gives, 1); }
+      if (g.inspect.has(b.id)) { for (const r in need) if (need[r]) ioAdd(g, b, 'in', r, need[r]); ioAdd(g, b, 'out', H.gives, 1); }
     }
     b.sup = ok; b.full = ok && !room;
   }
@@ -165,12 +176,12 @@ export const PRODUCTION_TICKS = {
     let m = 0;
     for (const i of b._ring) { const x = tkx(i), y = tky(i); if (tree.get(x, y) >= 1 && !g.bmap.get(x, y)) m++; }
     b._m = m;
-    if ((b.out.holz || 0) < SAW.buf) { b.acc += SAW.rate * prodOf(g, ownerOf(b)) * m * dt; if (b.acc >= 1) { b.acc -= 1; addOut(g, b, 'holz', 1); } }
+    if ((b.out.holz || 0) < SAW.buf) { b.acc += SAW.rate * prodOf(g, ownerOf(b)) * fxProd(g, b.isl) * m * dt; if (b.acc >= 1) { b.acc -= 1; addOut(g, b, 'holz', 1); } }
     flush(g, b);
   },
   bohrer: tickDrill, bohrer2: tickDrill, multibohrer: tickDrill,
   fischer(g, b, dt) {
-    if ((b.out.fisch || 0) < FISHER.buf) { b.acc += b._fr * rateOf(g, 'fischer', ownerOf(b)) * evFisher(g, b) * dt; if (b.acc >= 1) { b.acc -= 1; addOut(g, b, 'fisch', 1); } }
+    if ((b.out.fisch || 0) < FISHER.buf) { b.acc += b._fr * rateOf(g, 'fischer', ownerOf(b)) * fxProd(g, b.isl) * evFisher(g, b) * dt; if (b.acc >= 1) { b.acc -= 1; addOut(g, b, 'fisch', 1); } }
     flush(g, b);
   },
   drohnenhafen: tickHub,

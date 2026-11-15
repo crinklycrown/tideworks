@@ -230,28 +230,26 @@ export function makeItemIcon(id) {
       pb.set(5, 5, '#9cc8ff'); pb.rect(0, 10, 11, 1, '#7a5228'); pb.rect(1, 11, 9, 1, '#3a3e44');
       pb.outline('#2a1a10'); break;
     }
-    case 'erste_flamme': {   // End-Relikt A: Flamme in einer Messingschale
-      pb = new PB(12, 13);
-      for (let y = 0; y < 9; y++) for (let x = 0; x < 12; x++) {
-        const u = y / 8, half = 4.6 * Math.sin(Math.min(1, u * 1.3 + 0.1) * Math.PI) * (0.55 + u * 0.45), dx = x + 0.5 - 6 - (1 - u) * 0.8;
-        if (Math.abs(dx) > half) continue;
-        const d = Math.abs(dx) / Math.max(1, half);
-        pb.set(x, y, d < 0.35 && u > 0.35 ? '#fffbe0' : d < 0.7 ? '#ffd65a' : '#f08a3a');
-      }
-      for (let x = 1; x < 11; x++) { pb.set(x, 9, x < 4 ? '#ffe08a' : '#d8a440'); if (x > 1 && x < 10) pb.set(x, 10, x < 5 ? '#d8a440' : '#9a6a1e'); }
-      pb.rect(5, 11, 2, 1, '#9a6a1e'); pb.rect(3, 12, 6, 1, '#7a5228');
-      pb.outline('#3a1a08'); break;
+    // 0.24.0: Schätze des Meeres (Baustoffe der Reliktsockel). Die Symbole der Relikte stehen in gfx/sprites/relics.js.
+    case 'koralle': {   // verzweigte rote Koralle
+      pb = new PB(11, 12);
+      const br = [[5, 11, 5, 5], [5, 7, 2, 3], [2, 3, 1, 1], [5, 6, 8, 3], [8, 3, 9, 0], [5, 5, 5, 1], [2, 3, 3, 0], [8, 4, 10, 3]];
+      for (const [x0, y0, x1, y1] of br) { line(pb, x0, y0, x1, y1, '#e8604a'); line(pb, x0 + 1, y0, x1 + 1, y1, '#b83a2e'); }
+      for (const [x, y] of [[1, 1], [3, 0], [5, 1], [9, 0], [10, 3]]) pb.set(x, y, '#ffb09a');
+      pb.rect(3, 11, 6, 1, '#d8c8a0');
+      pb.outline('#4a140e'); break;
     }
-    case 'krone': {   // End-Relikt B: goldene Krone mit Steinen
-      pb = new PB(13, 10);
-      for (let y = 2; y < 10; y++) for (let x = 0; x < 13; x++) {
-        const spike = y >= 5 || [1, 6, 11].some(c => Math.abs(x - c) <= (y - 2) * 0.6);
-        if (!spike) continue;
-        pb.set(x, y, y === 9 ? '#9a6a10' : x < 4 ? '#fff2a0' : x > 9 ? '#e0a82a' : '#ffd23f');
+    case 'muschel': {   // Jakobsmuschel mit Rippen
+      pb = new PB(12, 11);
+      for (let y = 0; y < 11; y++) for (let x = 0; x < 12; x++) {
+        const dx = x + 0.5 - 6, dy = y + 0.5 - 9.5, r = Math.hypot(dx, dy * 1.05), a = Math.atan2(dx, -dy);
+        if (y > 8 && Math.abs(dx) > 1.6) continue;
+        if (r > 8.6 || Math.abs(a) > 1.25) continue;
+        const rib = Math.floor((a + 1.25) / 2.5 * 7) % 2;
+        pb.set(x, y, rib ? (dx < 0 ? '#fff0e0' : '#f0d8c0') : (dx < 0 ? '#e8b8a0' : '#c89878'));
       }
-      for (const c of [1, 6, 11]) pb.set(c, 1, '#fff2a0');
-      pb.set(3, 7, '#e0384f'); pb.set(6, 7, '#3f8fe8'); pb.set(9, 7, '#e0384f'); pb.set(6, 3, '#2f8a52');
-      pb.outline('#4a3010'); break;
+      pb.rect(4, 9, 4, 2, '#e8c8a8');
+      pb.outline('#5a3828'); break;
     }
     case 'werkzeug':
     default:

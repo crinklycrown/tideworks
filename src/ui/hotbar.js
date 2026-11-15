@@ -1,6 +1,6 @@
 /* =========================================================
    KNOPFLEISTE unten mittig + Tastenkürzel der Oberfläche
-   B Bauen · T Forschung · F Flotte · P Statistik · K Markt · N Völker · M Karte · X Abriss · U Aufwerten · V Blaupause · H Status · 1–9 Gebäude · Esc
+   B Bauen · T Forschung · F Flotte · P Statistik · K Markt · N Völker · L Relikte · M Karte · X Abriss · U Aufwerten · V Blaupause · H Status · 1–9 Gebäude · Esc
    Rückgängig/Wiederholen (Pfeile, Strg+Z / Strg+Y) haben keinen Namen. Alle Kürzel: KEYS (Tabelle im Zahnrad-Menü).
    ========================================================= */
 import { openPause } from './menu.js';
@@ -28,6 +28,7 @@ const HOTBAR = [
   { id: 'stats', icon: 'chart', name: 'Statistik', key: 'P', run: () => toggleWindow('stats') },
   { id: 'market', icon: 'coin', name: 'Markt', key: 'K', run: () => toggleWindow('market') },
   { id: 'npcs', icon: 'people', name: 'Völker', key: 'N', run: () => toggleWindow('npcs') },
+  { id: 'relics', icon: 'relic', name: 'Relikte', key: 'L', run: () => toggleWindow('relics') },
   { id: 'map', icon: 'map', name: 'Karte', key: 'M', run: () => toggleWindow('map') },
   { id: 'demolish', icon: 'pick', name: 'Abriss', key: 'X', run: () => toggleDemolish() },
   { id: 'upgrade', icon: 'upgrade', name: 'Aufwerten', key: 'U', run: () => toggleUpgrade() },
@@ -45,7 +46,7 @@ export const KEYS = [
     ['Ziehen', 'Bänder als Linie verlegen: quer liegende Bänder werden Kreuzungen, Hindernisse bis 3 Felder überspannt ein Brückenband'], ['Umschalt+Ziehen', 'Linie gerade halten'],
     ['X', 'Abriss (Umschalt: nur das Rohr)'], ['U', 'Aufwerten (Klick oder Ziehen, Umschalt: Rohr unter einem Band)'], ['Strg+Z', 'Rückgängig'], ['Strg+Y / Strg+Umschalt+Z', 'Wiederholen']]],
   ['Blaupausen', [['V', 'Rechteck auswählen'], ['Strg+C', 'Auswahl kopieren'], ['Strg+V', 'Zwischenablage einfügen'], ['Umschalt+V', 'Bibliothek „Blaupausen“']]],
-  ['Fenster und Ansichten', [['T', 'Forschung'], ['F', 'Flotte'], ['P', 'Statistik'], ['M', 'Kartenansicht: ganze erkundete Welt, Routen, Schiffe, Funde'], ['K', 'Markt: Preise, Händler, Handelsaufträge'], ['N', 'Völker: Handel, Ruf, Aufträge und Lieferverträge mit Ole, Brann und Aurel'], ['H', 'Statusansicht'], ['G / Umschalt+Klick', 'Tor öffnen oder schließen'], ['Esc', 'Abbrechen, schließen (Reihenfolge siehe README); ist nichts offen: Pausenmenü']]],
+  ['Fenster und Ansichten', [['T', 'Forschung'], ['F', 'Flotte'], ['P', 'Statistik'], ['M', 'Kartenansicht: ganze erkundete Welt, Routen, Schiffe, Funde'], ['K', 'Markt: Preise, Händler, Handelsaufträge'], ['N', 'Völker: Handel, Ruf, Aufträge und Lieferverträge mit Ole, Brann und Aurel'], ['L', 'Relikte: Sammlung, eingesetzte Relikte, Herkunft'],['H', 'Statusansicht'], ['G / Umschalt+Klick', 'Tor öffnen oder schließen'], ['Esc', 'Abbrechen, schließen (Reihenfolge siehe README); ist nichts offen: Pausenmenü']]],
   ['Koop', [['Enter', 'Chat öffnen, Enter schickt, Esc schließt (nicht in Modi, die Enter brauchen: Kontor gründen, Route anlegen)'], ['Mittlere Maustaste / Alt+Klick', 'Markierung setzen: Hierher, Achtung, Hilfe, Bauplatz'], ['Leertaste / Umschalt+1 / 2 / 3', 'Tempo und Pause: nur der Host']]]
 ];
 

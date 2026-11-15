@@ -34,6 +34,9 @@ export const UNLOCKS = {
   sortierer:   { src: 'npc', npc: 'brann', lvl: 'freundlich' },
   tor:         { src: 'npc', npc: 'brann', lvl: 'freundlich' },
   'ship:kogge': { src: 'npc', npc: 'brann', lvl: 'freundlich' },
+  // Reliktsockel (0.24.0): der gewöhnliche über die Forschung „Reliktkunde“ (Akt 2), der seltene bei Brann, der legendäre bei Aurel
+  sockel2:     { src: 'npc', npc: 'brann', lvl: 'vertraut' },
+  sockel3:     { src: 'npc', npc: 'aurel', lvl: 'vertraut' },
   // Story
   leuchtturm:  { src: 'story', hint: 'Akt 2' },
   // Bauplan Taucherglocke (Ende Akt 2, cs_licht_im_wind). Gebaut wird sie in der Werft (sim/dive.js mountBell), im Baumenü steht ein Feld (WERFT_SLOTS)

@@ -44,6 +44,7 @@ import { requests, flying, inReach } from '../sim/drones.js';
 import { repairCost } from '../sim/events.js';
 import { handelInfoHTML, plHTML, plViewHTML } from './market.js';
 import { selShip, shipStatus, shipSpr, kindName, autoHTML, holdsHTML, foundHTML, resumeHTML, pickHTML, portHTML } from './ships.js';
+import { pedestalHTML } from './relics.js';
 /* ---------- Speicher (Hauptkontor, Lagerkiste, Handelskontor) ---------- */
 // Bestand mit Symbol, Menge und Füllstand je Ware
 function stockHTML(b) {
@@ -402,6 +403,7 @@ function infoBuilding(b) {
   switch (b.t) {
     case 'handel': h += handelInfoHTML(b); break;
     case 'leuchtturm': h += wonderHTML(b); break;
+    case 'sockel1': case 'sockel2': case 'sockel3': h += pedestalHTML(b); break;
     case 'drohnenhafen': h += hubHTML(b); break;
     case 'dkiste': h += dkisteHTML(b); break;
     case 'band': case 'band2': case 'band3':

@@ -172,7 +172,7 @@ ok(!BD.extraktor.rot, 'Extraktor hat keine Richtung mehr');
   const cross = put('band', 3, 0, 1);      // quer (nach unten), der alte Extraktor lud seitlich auf
   put('band', 3, 1, 1); const end = put('kiste', 3, 2);
   const json = JSON.parse(serialize(g, {}));
-  ok(json.v === SAVE_VERSION && SAVE_VERSION === 18, 'Spielstand Version 18');
+  ok(json.v === SAVE_VERSION && SAVE_VERSION >= 18, `Spielstand Version ${SAVE_VERSION} (ab 18)`);
   json.v = 17;
   for (const b of json.blds) delete b.fd;
   const g2 = createGame();

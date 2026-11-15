@@ -1,7 +1,7 @@
 {
   "name": "tideworks",
   "private": true,
-  "version": "0.23.1",
+  "version": "0.24.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,7 +16,8 @@
     "check:wonder": "node tools/check-wonder.mjs",
     "check:dive": "node tools/check-dive.mjs",
     "check:akt4": "node tools/check-akt4.mjs",
-    "check:ending": "node tools/check-ending.mjs"
+    "check:ending": "node tools/check-ending.mjs",
+    "check:relics": "node tools/check-relics.mjs"
   },
   "devDependencies": {
     "vite": "^8.3.4"

@@ -22,7 +22,7 @@ export const REP_LEVELS = [
 // steigt der Verkaufspreis um per; beides erholt sich um recover je Minute. chunk = Stück je Teilgeschäft (Preis dazwischen neu).
 export const NPC_MARKET = { step: 10, per: 0.025, max: 0.6, recover: 0.03, chunk: 10 };
 // Grundpreise (Münzen je Stück) der Waren, die es nur bei den Völkern gibt (die übrigen stehen in data/trade.js PRICES)
-export const NPC_GOODS = { seil: 6, netz: 14, zahnrad: 12, feder: 9, rohrteil: 16, uhrwerk: 60, zelle: 45, perle: 80,
+export const NPC_GOODS = { seil: 6, netz: 14, zahnrad: 12, feder: 9, rohrteil: 16, uhrwerk: 60, zelle: 45, perle: 80, koralle: 40, muschel: 25,
   glockenseil: 300, glockenhaube: 800 };   // Teile der Taucherglocke (0.19.0, data/dive.js)
 // Preise der Pläne (data/unlocks.js PLANS), Münzen
 export const PLAN_PRICE = { brann_schnellband: 600, brann_dampf: 900, brann_druck: 1500, aurel_akkus: 800, aurel_kessel: 800, aurel_geo: 1400, aurel_ingenieur: 2000 };
@@ -57,8 +57,8 @@ export const NPC_TRADE = {
   ole: {
     rep: 10,
     buys: [{ it: 'holz', f: 1.3 }, { it: 'werkzeug', f: 1.2, lvl: 'neutral' }],
+    // Relikte (seit 0.24.0) stehen nicht hier, sondern in data/relics.js RELIC_SOURCES.npc (ein Relikt je Tag im Angebot)
     sells: [{ it: 'fisch', f: 1, n: 200, refill: 20 }, { it: 'seil', n: 60, refill: 6, lvl: 'neutral' }, { it: 'netz', n: 30, refill: 3, lvl: 'freundlich' },
-      { soon: 'Gewöhnliches Relikt', lvl: 'freundlich' },
       // Taucherglocke (0.19.0): ab Akt 3 bei jeder Rufstufe, ein Stück (falls es verloren geht, kommt alle 10 min eins nach)
       { it: 'glockenseil', n: 1, refill: 0.1, act: 3, part: true },
       // Ende A (0.23.0): besseres Angebot (end: 'a' = erst nach Ende A, vorher unsichtbar)
@@ -74,7 +74,7 @@ export const NPC_TRADE = {
     rep: 30,
     buys: [{ it: 'eisen', f: 1.3 }, { it: 'kupfer', f: 1.3 }, { it: 'kohle', f: 1.2, lvl: 'neutral' }, { it: 'raeucherfisch', f: 1.2, lvl: 'neutral' }, { it: 'schrott', f: 1.2 }],
     sells: [{ it: 'zahnrad', n: 60, refill: 5 }, { it: 'feder', n: 60, refill: 5, lvl: 'neutral' }, { it: 'rohrteil', n: 40, refill: 3, lvl: 'freundlich' },
-      { it: 'glockenhaube', n: 1, refill: 0.1, act: 3, part: true }, { soon: 'Seltenes Relikt', lvl: 'vertraut' },
+      { it: 'glockenhaube', n: 1, refill: 0.1, act: 3, part: true },
       // Ende A (0.23.0): besseres Angebot
       { it: 'stahl', f: 0.9, n: 100, refill: 8, end: 'a' }, { it: 'draht', f: 0.9, n: 150, refill: 12, end: 'a' }],
     orders: [{ it: 'eisen', n: [40, 100], days: 0, pay: 2, rep: 4 }, { it: 'kupfer', n: [40, 100], days: 1, pay: 2, rep: 5 },
@@ -87,7 +87,7 @@ export const NPC_TRADE = {
     rep: 60,
     buys: [{ it: 'werkzeug', f: 1.4 }, { it: 'perle', f: 1.3, lvl: 'neutral' }],
     sells: [{ it: 'glas', f: 1, n: 120, refill: 8 }, { it: 'uhrwerk', n: 20, refill: 1, lvl: 'neutral' }, { it: 'zelle', n: 30, refill: 2, lvl: 'freundlich' },
-      { soon: 'Luxuswaren', lvl: 'neutral' }, { soon: 'Legendäres Relikt', lvl: 'vertraut' }],
+      { soon: 'Luxuswaren', lvl: 'neutral' }],
     orders: [{ it: 'werkzeug', n: [20, 60], days: 1, pay: 2.4, rep: 4 }, { it: 'ziegel', n: [60, 150], days: 1, pay: 2.2, rep: 4 }, { it: 'stahl', n: [30, 60], days: 1, pay: 2.2, rep: 6, lvl: 'vertraut' }],
     deals: [{ id: 'aurel_werkzeug', it: 'werkzeug', n: 30, f: 1.8, bonus: 200, rep: 2, lvl: 'freundlich' }],
     village: [{ at: 1000, add: [['npc_laterne', 3], ['npc_banner', 1]] }, { at: 4000, add: [['npc_villa', 1], ['npc_laterne', 3]] },
@@ -118,7 +118,7 @@ export const NPC_TRADE = {
      Aurels Insel geht mit allen Gebäuden an dich (Hauptkontor am alten Steg), convert = Dorfgebäude, die zu echten
      Gebäuden des Spielers werden (Typ → Typ, gleiche Grundfläche); die übrigen bleiben als Schmuck stehen (abreißbar).
      drop = Gebäudetypen der Ruinen-Dörfer, die ganz verschwinden.
-   relic = Gegenstand, der ins Lager der Heimatinsel kommt (data/items.js; Wirkung erst mit dem Relikt-System). */
+   relic = End-Relikt, das in die Reliktsammlung kommt (seit 0.24.0, data/relics.js; vorher als Ware im Lager der Heimatinsel). */
 export const ENDINGS = {
   a: { rep: 90, buy: 1.15, sell: 0.8, fest: 900, keep: ['npc_villa'], relic: 'erste_flamme' },
   b: { convert: { npc_villa: 'buerger' }, drop: ['npc_laterne'], relic: 'krone' }

@@ -44,7 +44,7 @@ const P = (g, v) => pst(g, v.pid), S = (g) => isSep(g);
 const TOP = {
   time: g => g.state.time, xp: (g, v) => P(g, v).xp, xpTotal: (g, v) => P(g, v).xpTotal, goal: (g, v) => P(g, v).goal, gdone: (g, v) => P(g, v).gdone, nextId: g => g.state.nextId,
   tech: (g, v) => P(g, v).tech, stats: (g, v) => P(g, v).stats, found: (g, v) => P(g, v).found, mapped: (g, v) => P(g, v).mapped,
-  coins: (g, v) => P(g, v).coins, coinsTotal: (g, v) => P(g, v).coinsTotal, wonder: (g, v) => P(g, v).wonder, unl: g => g.state.unl, story: g => g.state.story, npc: g => g.state.npc, dive: g => g.state.dive,
+  coins: (g, v) => P(g, v).coins, coinsTotal: (g, v) => P(g, v).coinsTotal, wonder: (g, v) => P(g, v).wonder, unl: g => g.state.unl, story: g => g.state.story, npc: g => g.state.npc, dive: g => g.state.dive, relics: g => g.state.relics,
   ev: (g, v) => S(g) ? evFor2(g, v.pid) : g.state.ev, evMode: g => g.state.evMode, orders: (g, v) => S(g) ? ownKeys(g, g.state.orders, v.pid) : g.state.orders,
   players: g => S(g) ? playersFor(g) : g.state.players, mode: g => g.state.mode, RT: (g, v) => S(g) ? rtFor(g, v.pid) : g.RT, topoVer: g => g.topoVer, wireVer: g => g.wireVer,
   trade: (g, v) => S(g) ? tradeFor(g, v.pid, fogOf(g, v.pid)) : { due: g.state.trade.due, list: g.state.trade.list.map(t => ({ id: t.id, kind: t.kind, isl: t.isl, post: t.post, x: t.x, y: t.y, fl: t.fl, st: t.st, tm: t.tm, offer: t.offer })) }

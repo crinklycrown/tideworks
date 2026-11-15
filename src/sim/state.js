@@ -41,6 +41,7 @@ import { pickNpcCells } from '../world/npcs.js';
 import { buildVillages } from './villages.js';
 import { storyStart } from './story.js';
 import { freshNpc } from './npc.js';
+import { freshRelics, fxCap } from './relics.js';
 
 // Spieler-ID des Hosts bzw. des Einzelspielers. Mitspieler haben eine feste ID aus ihrem Browser (net/session.js).
 export const HOST_PID = 'host';
@@ -94,6 +95,7 @@ export function freshState(seed) {
     story: null,                             // Geschichte (data/story.js): { act, flags, seen, once, choice }; null = ohne Geschichte (Getrennte Inseln, Demo)
     npc: null,                               // Handel mit den Völkern (sim/npc.js): Ruf, Preise, Vorrat, Aufträge, Verträge, Dörfer; null = ohne Geschichte
     npcs: null,                              // Zellen der NPC-Inseln { ole: [cx, cy], brann, aurel } (data/npcs.js, world/npcs.js); null = keine
+    relics: freshRelics(),                   // Relikte und Reliktsockel (sim/relics.js, data/relics.js, seit 0.24.0); gehört zur Welt
     ui: freshUI()
   };
 }
@@ -214,11 +216,13 @@ export function isUnlocked(g, key, pid) {
 }
 // Plan-Voraussetzung einer Forschung erfüllt (Getrennte Inseln: keine Pläne nötig)
 export const planOk = (g, T) => !T.plan || isSep(g) || !!(g.state.unl && g.state.unl['plan:' + T.plan]);
+// Akt-Voraussetzung einer Forschung (T.act, seit 0.24.0): erst ab diesem Akt der Geschichte; ohne Geschichte (Getrennte Inseln) frei
+export const actOk = (g, T) => !T.act || !g.state.story || (g.state.story.act | 0) >= T.act;
 const NONE = Object.freeze({});
 // Gebäudezahlen je Typ auf Insel k (leer, wenn dort nichts steht)
 export const islc = (g, k) => g.ISLC[k] || NONE;
-// Platz je Ware im Inselinventar k (Hauptkontor, mit Upgrades des Besitzers, sim/mods.js); ohne Hauptkontor 0
-export const capOf = (g, k) => g.KONT[k] ? mods(g, islOwner(g, k)).cap.kontor : 0;
+// Platz je Ware im Inselinventar k (Hauptkontor, mit Upgrades des Besitzers, sim/mods.js, und Relikt der Insel, sim/relics.js); ohne Hauptkontor 0
+export const capOf = (g, k) => g.KONT[k] ? Math.round(mods(g, islOwner(g, k)).cap.kontor * fxCap(g, k)) : 0;
 export const totalPop = (g) => { let n = 0; for (const k in g.RT.popSup) n += g.RT.popSup[k]; return n; };
 // Inselinventar nur lesen (leer, wenn die Insel noch nicht im Spielstand steht)
 export const invOf = (g, k) => (g.state.isl[k] && g.state.isl[k].inv) || NONE;

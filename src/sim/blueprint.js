@@ -23,7 +23,7 @@ import { mine, myIsl } from './state.js';
 export const BP_VERSION = 1;
 export const BP_NAME_LEN = 32;
 // Diese Gebäude kommen nie in eine Blaupause (eins pro Insel bzw. ans Meer gebunden)
-export const BP_EXCLUDE = new Set(['kontor', 'kontoralt', 'handelskontor', 'werft', 'handel', 'leuchtturm']);
+export const BP_EXCLUDE = new Set(['kontor', 'kontoralt', 'handelskontor', 'werft', 'handel', 'leuchtturm', 'sockel1', 'sockel2', 'sockel3']);
 
 /* ---------- Erfassen ---------- */
 // Rechteck (Felder, einschließlich) → { bp, skipped: { Typ: Anzahl }, n } (bp = null, wenn nichts darin liegt)

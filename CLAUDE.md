@@ -11,7 +11,7 @@ npm install        # Abhängigkeiten
 npm run dev        # Entwicklungsserver: http://localhost:5173/tideworks/
 npm run build      # fertige Version nach dist/ (plus Einzeldatei dist/tideworks.html)
 npm run preview    # dist/ ansehen: http://localhost:4173/tideworks/
-npm run check:coop # weitere Prüfskripte: check:tree, check:world, check:story, check:npc, check:extract, check:wonder, check:dive, check:akt4, check:ending
+npm run check:coop # weitere Prüfskripte: check:tree, check:world, check:story, check:npc, check:extract, check:wonder, check:dive, check:akt4, check:ending, check:relics
 ```
 
 ## Doku

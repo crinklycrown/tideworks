@@ -53,7 +53,7 @@ export function clearPending() { pending.length = 0; }
 
 /* ---------- Nachrichten des Hosts in den Spiegel ---------- */
 // Teile, die der Host nur nach Änderungen schickt (sim/views.js TOP)
-const TOP = ['ack', 'speed', 'halt', 'pipeVer', 'time', 'xp', 'xpTotal', 'goal', 'gdone', 'nextId', 'tech', 'stats', 'found', 'mapped', 'coins', 'coinsTotal', 'wonder', 'unl', 'story', 'npc', 'dive', 'ev', 'evMode', 'orders', 'players', 'mode', 'RT', 'topoVer', 'wireVer', 'trade',
+const TOP = ['ack', 'speed', 'halt', 'pipeVer', 'time', 'xp', 'xpTotal', 'goal', 'gdone', 'nextId', 'tech', 'stats', 'found', 'mapped', 'coins', 'coinsTotal', 'wonder', 'unl', 'story', 'npc', 'dive', 'relics', 'ev', 'evMode', 'orders', 'players', 'mode', 'RT', 'topoVer', 'wireVer', 'trade',
   'homes', 'wfirst', 'lh', 'perms'];   // Getrennte Inseln
 
 export function remoteWorld(m, w) {

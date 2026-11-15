@@ -732,3 +732,15 @@ body.menu .toasts{z-index:160;}
 .cine-choice-btns{display:flex; gap:calc(var(--px) * 6); flex-wrap:wrap; justify-content:center;}
 .cine-choice .btn{font-size:max(14px, calc(var(--px) * 6)); padding:.45em 1.1em;}
 .cine-choice .btn:focus-visible{outline:2px solid #fbf0d4; outline-offset:2px;}
+
+/* ---------- Relikte (0.24.0, ui/relics.js) ---------- */
+.rtier{font-family:'Nunito',system-ui,sans-serif; font-weight:800; font-size:11px; padding:0 5px; border-radius:3px; border:1px solid var(--wood-d); white-space:nowrap; vertical-align:1px;}
+.rtier.t1{background:#e6dfd0; color:#4a443a;} .rtier.t2{background:#bfe0f8; color:#1a3a5a;} .rtier.t3{background:#ffe08a; color:#5a3a08; box-shadow:0 0 4px #ffd23f;}
+.rdesc{font-style:italic; color:var(--muted); margin-top:2px;}
+.relicbox{display:flex; gap:8px; align-items:flex-start; padding:6px; margin:6px 0 4px; background:var(--parch2); border:1px solid var(--parch3); border-radius:4px;}
+.relicbox.off{opacity:.65; border-style:dashed;}
+.relicline{display:flex; gap:6px; align-items:center; padding:4px 0 6px; margin-bottom:5px; border-bottom:1px dashed #dfc895; line-height:1.25;}
+.relicline.off{opacity:.65;}
+.rgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:4px; margin:2px 0 4px;}
+.rcell{display:flex; flex-direction:column; align-items:center; gap:2px; padding:5px 3px; text-align:center; background:#fffaf0; border:1px solid var(--parch3); border-radius:4px; line-height:1.2;}
+.rcell.unk{background:var(--parch2); opacity:.75;}

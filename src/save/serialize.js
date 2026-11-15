@@ -21,6 +21,9 @@
    v15 nach v16 (Geschichte und NPC-Inseln): Einzelspieler und „Gemeinsame Insel“ bekommen die Geschichte ab Akt 1 und die drei NPC-Inseln,
    und zwar in Zellen, die noch nicht aufgedeckt und nicht bebaut sind (die bekannte Welt bleibt gleich). Getrennte Inseln bleiben ohne.
    v16 nach v17 (Handel mit den Völkern): state.npc mit Startruf, ohne Aufträge; die Stufe gilt beim nächsten Sekundentakt (Freischaltungen der erreichten Stufe).
+   v17 nach v18 (Extraktor ohne Richtung), v18 nach v19 (0.24.0, Relikte): End-Relikte aus dem Inselinventar wandern in die Reliktsammlung.
+   Neu in v19: relics ({ list: [{ u, id, at, isl, pick, off, due, src }], next, got, rn, ver }, sim/relics.js), Gebäude sockel1–3,
+   Waren koralle und muschel, b.hc (Bruchteile des Hausverbrauchs), b.nk (Ofen-Durchgang ohne Kohle), npc.<Volk>.relic/rday, Aufträge mit relic.
    Neu in v17: npc ({ day, n, ole|brann|aurel: { rep, lv, sat, dem, stock, chart, orders, deals, del, vil, log } }, sim/npc.js), Schiffsart kogge, Routen-Stopps an NPC-Stegen.
    Neu in v16: story ({ act, flags, seen, once, choice }), npcs ({ ole: [cx, cy], brann, aurel }), Gebäude der NPC-Dörfer (by = 'npc:<id>').
    Neu in v14 (nur „Getrennte Inseln“): homes ([{ slot, cx, cy, pid | null }], Startplätze), wfirst (wer den ersten Leuchtturm entzündet hat),
@@ -62,6 +65,7 @@ import { UNLOCK_KEYS, srcOf } from '../data/unlocks.js';
 import { GOALS, GOAL_IDS_V11 } from '../data/goals.js';
 import { netContents, restoreContents } from '../sim/fluids.js';
 import { resumeDrones } from '../sim/drones.js';
+import { cleanRelics } from '../sim/relics.js';
 
 // Laufzeit-Felder, die trotzdem gespeichert werden (_pt = Pflanz-Timer der Sägewerke)
 const SAVE_KEEP = new Set(['_pt']);
@@ -113,6 +117,7 @@ export function migrate(s) {
   if (s.v === 15) migrate15(s);
   if (s.v === 16) migrate16(s);
   if (s.v === 17) migrate17(s);
+  if (s.v === 18) migrate18(s);
   if (s.v !== SAVE_VERSION) return null;      // v2–v4: alte, feste Karte, nicht übertragbar
   if (!s.isl || typeof s.isl !== 'object' || Array.isArray(s.isl)) return null;
   return s;
@@ -338,6 +343,22 @@ function migrate17(s) {
   }
   s.v = 18;
 }
+// v18 → v19 (0.24.0): Relikte. Die End-Relikte aus 0.23.0 lagen als Ware im Inselinventar (erste_flamme, krone);
+// sie wandern in die Reliktsammlung (je eins, legendär) und verschwinden aus allen Lagern. Sonst beginnt die Sammlung leer.
+function migrate18(s) {
+  const list = [], got = {};
+  for (const k in (s.isl && typeof s.isl === 'object' ? s.isl : {})) {
+    const inv = s.isl[k] && s.isl[k].inv;
+    if (!inv || typeof inv !== 'object') continue;
+    for (const id of ['erste_flamme', 'krone']) {
+      if ((+inv[id] || 0) > 0 && !got[id]) { got[id] = 1; list.push({ u: list.length + 1, id, at: null, src: 'ende' }); }
+      delete inv[id];
+    }
+  }
+  s.relics = { list, next: list.length + 1, got, rn: 0, ver: 0 };
+  if (list.length) s._rel19 = list.map(e => e.id);   // Hinweis beim ersten Laden (loadInto)
+  s.v = 19;
+}
 // Story-Zustand prüfen (null = ohne Geschichte)
 function cleanStory(raw) {
   if (!raw || typeof raw !== 'object') return null;
@@ -465,6 +486,8 @@ export function loadInto(g, raw) {
     state.wonder = mergeDefaults(base.wonder, s.wonder);
     // Taucherglocke und Tauchspot (0.19.0): fehlt in älteren Ständen
     state.dive = cleanDive(s.dive, state.ships); syncBell(g);
+    // Relikte (v19): Sammlung prüfen, eingesetzte Relikte nur in vorhandenen, passenden Sockeln
+    state.relics = cleanRelics(s.relics, g); g._rfx = null;
     // Freischaltungen (v15): nur bekannte Schlüssel
     state.unl = {};
     if (s.unl && typeof s.unl === 'object' && !Array.isArray(s.unl)) for (const k in s.unl) if (UNLOCK_KEYS.includes(k) && typeof s.unl[k] === 'string') state.unl[k] = s.unl[k];
@@ -479,6 +502,7 @@ export function loadInto(g, raw) {
     if (s._outNote) { delete state._outNote; g.events.push({ type: 'migrated', outItem: s._outNote }); }
     if (s._v15) { delete state._v15; g.events.push({ type: 'migrated15' }); }
     if (s._npc16 && state.story) g.events.push({ type: 'migrated16', had: !!state.story.flags.alt_turm });
+    if (s._rel19) { delete state._rel19; g.events.push({ type: 'migrated19', ids: s._rel19 }); }
     return true;
   } catch (e) { console.warn('Spielstand defekt', e); return false; }
 }

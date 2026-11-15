@@ -20,6 +20,7 @@ import { ratesFor, fmtRate, rateCls, active, chartHTML, drawChart, breakdownHTML
 import { layout } from './layout.js';
 import { registerTip } from './tooltip.js';
 import { hooks } from './ships.js';
+import { islandRelicHTML } from './relics.js';
 
 export function renderInventory() {
   const k = curIsl(), inv = invOf(game, k), cap = capOf(game, k), col = game.state.ui.invCollapsed;
@@ -67,7 +68,8 @@ export function renderInventory() {
   }
   patchList($('inventory'), rows);
   const ps = islPower(game, k);
-  setHTML($('invDetail'), `Kapazität: <b>${fmt(cap)}</b> je Ware im Hauptkontor` +
+  // Relikt der Insel (0.24.0, ui/relics.js): Name und Wirkung, Tooltip mit dem genauen Bonus
+  setHTML($('invDetail'), islandRelicHTML(k) + `Kapazität: <b>${fmt(cap)}</b> je Ware im Hauptkontor` +
     (ps.cap ? `<div class="row" style="margin-top:5px" data-tip="power">${img(SPR.icon.bolt, 2)}<div class="bar blue" style="height:9px"><div style="width:${ps.e / ps.cap * 100}%"></div></div><span class="pix">${Math.floor(ps.e)}/${ps.cap}</span></div>` : ''));
   renderPopover();
 }

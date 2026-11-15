@@ -41,6 +41,8 @@ import './ui/fleet.js';
 import './ui/stats.js';
 import './ui/market.js';
 import { lvlName } from './ui/npcs.js';
+import { relicName } from './ui/relics.js';
+import { curIsl } from './ui/common.js';
 import './ui/mapview.js';
 import { TRADERS } from './data/trade.js';
 import { EVENTS } from './data/events.js';
@@ -147,7 +149,7 @@ function flushIslandNews() {
   toast(`${ic}<span><b>${head}</b><br><span class="xs">${list}${ol.length ? ` &middot; Vorkommen: ${ol.join(', ')}` : ''}</span></span>`, 'gold');
 }
 function onEvents(events) {
-  const B = { unl: [], orders: [], ordEnd: [], dealOk: [] };   // gesammelt, am Ende je eine Meldung
+  const B = { unl: [], orders: [], ordEnd: [], dealOk: [], relicOffer: [] };   // gesammelt, am Ende je eine Meldung
   for (const ev of events) {
     if (ISL_NAME_EV.has(ev.type) && ev.isl != null) ev.name = islName(game, ev.isl);   // Name aus eigener Sicht (Getrennte Inseln: „Heimatinsel“)
     switch (ev.type) {
@@ -290,7 +292,22 @@ function onEvents(events) {
         saveGame(); renderAllUI(true); break;
       }
       case 'npcOrders': B.orders.push(ev); renderWindow(); break;
-      case 'npcOrder': toast(`${img(SPR.icon.check, 2)}<span><b>Auftrag für ${esc(npcName(ev.npc))} erledigt:</b> ${fmt(ev.n)} ${ITEMS[ev.it].name} &middot; +${fmt(ev.coins)} Münzen, +${ev.rep} Ruf</span>`, 'gold', true); renderAllUI(); break;
+      case 'npcOrder': toast(`${img(ev.relic && SPR.relic[ev.relic] ? SPR.relic[ev.relic] : SPR.icon.check, 2)}<span><b>Auftrag für ${esc(npcName(ev.npc))} erledigt:</b> ${fmt(ev.n)} ${ITEMS[ev.it].name} &middot; +${fmt(ev.coins)} Münzen, +${ev.rep} Ruf${ev.relic ? ` &middot; Relikt: <b>${esc(relicName(ev.relic))}</b> (Relikte, L)` : ''}</span>`, 'gold', true); renderAllUI(); break;
+      // Relikte (0.24.0, sim/relics.js, ui/relics.js)
+      case 'relicGot': {
+        const how = String(ev.src || '').startsWith('npc:') ? `bei ${esc(npcName(ev.src.slice(4)))} gekauft` : 'gefunden';
+        toast(`${img(SPR.relic[ev.id], 2)}<span><b>Relikt ${how}:</b> ${esc(relicName(ev.id))}. Es liegt in der Sammlung (Relikte, L), setz es in einen Reliktsockel.</span>`, 'gold', true);
+        renderAllUI(); break;
+      }
+      case 'relicPaused': toast(`${img(SPR.relic[ev.id], 2)}<span><b>${esc(relicName(ev.id))}</b> auf ${esc(islName(game, ev.isl))} ruht: Es fehlen Perlen im Inselinventar.</span>`, '', true); renderAllUI(); break;
+      case 'relicResumed': toast(`${img(SPR.relic[ev.id], 2)}<span><b>${esc(relicName(ev.id))}</b> wirkt wieder (${esc(islName(game, ev.isl))}).</span>`); renderAllUI(); break;
+      case 'relicTaken': if (ev.removed) toast(`${img(SPR.relic[ev.id], 2)}<span><b>${esc(relicName(ev.id))}</b> liegt wieder in der Sammlung (Sockel abgerissen).</span>`); renderAllUI(); break;
+      case 'relicPut': renderAllUI(); break;
+      case 'relicOffer': B.relicOffer.push(ev); renderWindow(); break;
+      case 'relicDebug': toast(ev.pearls ? `Debug: ${fmt(ev.pearls)} Perlen (und Korallen, Muscheln) auf ${esc(ev.name)}.` : `Debug: ${ev.n} Relikte in die Sammlung gelegt.`); renderAllUI(true); break;
+      case 'migrated19':
+        askInfo('Spielstand aktualisiert', `Es gibt jetzt <b>Relikte</b> und <b>Reliktsockel</b>. ${ev.ids.map(id => `<b>${esc(relicName(id))}</b>`).join(' und ')} liegt nicht mehr im Lager, sondern in deiner Reliktsammlung (Taste L). Setz es in einen Goldenen Sockel, dann wirkt es auf die ganze Insel.`, 'Verstanden');
+        break;
       case 'npcOrderEnd': B.ordEnd.push(ev); renderAllUI(); break;
       case 'npcDeal': {
         const who = esc(npcName(ev.npc)), it = ITEMS[ev.it].name;
@@ -321,6 +338,7 @@ function onEvents(events) {
   const star = img(SPR.icon.star, 2), who = (id) => esc(npcName(id));
   if (B.unl.length === 1) toast(`${star}<span><b>${esc(B.unl[0].name)}</b> ${B.unl[0].plan ? 'erhalten' : 'freigeschaltet'}!</span>`, 'gold');
   else if (B.unl.length) toast(`${star}<span><b>Freigeschaltet:</b> ${B.unl.map(e => esc(e.name)).join(', ')}</span>`, 'gold');
+  if (B.relicOffer.length) toast(`${img(SPR.icon.relic, 2)}<span><b>Relikte im Angebot:</b> ${B.relicOffer.map(e => `${who(e.npc)}: ${esc(relicName(e.id))}`).join(', ')} (Völker, N).</span>`, '', true);
   if (B.orders.length === 1) { const e = B.orders[0]; toast(`${img(SPR.npc.fig[e.npc], 2)}<span><b>${who(e.npc)}</b> hat ${e.n === 1 ? 'einen neuen Auftrag' : `${e.n} neue Aufträge`} (Völker, N).</span>`, '', true); }
   else if (B.orders.length) toast(`${img(SPR.icon.check, 2)}<span><b>Neue Aufträge:</b> ${B.orders.map(e => `${who(e.npc)} ${e.n}`).join(', ')} (Völker, N).</span>`, '', true);
   if (B.ordEnd.length === 1) { const e = B.ordEnd[0]; toast(`${img(SPR.npc.fig[e.npc], 2)}<span>Auftrag von <b>${who(e.npc)}</b> abgelaufen: ${fmt(e.got)} von ${fmt(e.n)} ${ITEMS[e.it].name} geliefert${e.coins ? ` (+${fmt(e.coins)} Münzen)` : ''}.</span>`, '', true); }
@@ -751,7 +769,13 @@ function debugApi() {
     finale: () => { client.send({ type: 'storyDebug', op: 'act', n: 5 }); client.send({ type: 'wonderDebug', n: 4 }); client.send({ type: 'storyDebug', op: 'step', id: 'finale' }); return true; },
     // Ende direkt setzen (0.23.0, nur Host, endgültig: vorher eine Kopie des Spielstands speichern): Szene, Dialog und Folgen
     ending: (c) => { if (c !== 'a' && c !== 'b') return 'tideworks.ending(\'a\') oder tideworks.ending(\'b\')'; client.send({ type: 'storyDebug', op: 'act', n: 5 }); client.send({ type: 'wonderDebug', n: 4 }); client.send({ type: 'storyDebug', op: 'ending', c }); return c; },
-    endingInfo: () => endingInfo(game)
+    endingInfo: () => endingInfo(game),
+    // Relikte (0.24.0, nur Host): relicsAll() legt jedes Relikt, das es noch nicht gibt, in die Sammlung (auch die End-Relikte);
+    // pearls(n) legt n Perlen (Standard 50) und je halb so viele Korallen und Muscheln ins Inselinventar der Insel unter der Kamera;
+    // relics() listet die Sammlung (id, Sockel, Insel, ruht)
+    relicsAll: () => { client.send({ type: 'relicDebug', op: 'all' }); return true; },
+    pearls: (n) => { client.send({ type: 'relicDebug', op: 'pearls', n: n | 0, isl: curIsl() >= 0 ? curIsl() : undefined }); return true; },
+    relics: () => (game.state.relics ? game.state.relics.list : []).map(e => ({ u: e.u, id: e.id, at: e.at, isl: e.isl, off: !!e.off, pick: e.pick || null }))
   };
 }
 const camXY = () => ({ x: Math.floor(cam.x / TS), y: Math.floor(cam.y / TS) });

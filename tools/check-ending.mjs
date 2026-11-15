@@ -48,7 +48,8 @@ function run(SEED, c) {
   const E = evs.find(e => e.type === 'story' && e.ending === c), X = evs.find(e => e.type === 'ending');
   ok(E && E.cs === `cs_ende_${c}` && S().choice === c && S().act === 6, T(`Entscheidung ${c}: Ereignis mit cs_ende_${c}, Akt 6`));
   ok(X && X.relic === ENDINGS[c].relic, T('Ereignis „ending“ an alle'));
-  ok((islData(g, homeIsl(g)).inv[ENDINGS[c].relic] | 0) === 1, T(`Relikt ${ENDINGS[c].relic} im Lager der Heimatinsel`));
+  // seit 0.24.0: End-Relikt in der Reliktsammlung, nicht mehr im Lager
+  ok(g.state.relics.list.filter(e => e.id === ENDINGS[c].relic && e.src === 'ende').length === 1 && !islData(g, homeIsl(g)).inv[ENDINGS[c].relic], T(`Relikt ${ENDINGS[c].relic} in der Reliktsammlung`));
   ok(!cmd({ type: 'storyDebug', op: 'ending', c: c === 'a' ? 'b' : 'a' }).some(e => e.type === 'story') && S().choice === c, T('zweite Entscheidung abgelehnt'));
   ok(!cmd({ type: 'storyChoice', c: 'b' }).some(e => e.type === 'story'), T('storyChoice danach abgelehnt'));
 

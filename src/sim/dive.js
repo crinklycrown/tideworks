@@ -28,6 +28,8 @@ import { G_WATER } from '../config.js';
 import { afford, pay, missingText, isUnlocked, ownerOf, mine, fogOf, homeIsl, islData, capOf, actor, playerName } from './state.js';
 import { addCargo, homePoint } from './ships.js';
 import { storyEvent } from './story.js';
+import { RELIC_SOURCES } from '../data/relics.js';
+import { giveRelic, rollRelic, rollTier, offeredRelics, relicSpots } from './relics.js';
 
 // Geladenen Zustand prüfen (save/serialize.js). Ein laufender Tauchgang wird beim Laden nicht fortgesetzt (Spot bleibt).
 export function cleanDive(raw, ships) {
@@ -145,15 +147,27 @@ function finish(g, ok, cancel, junk = []) {
     }
   }
   if (ok && s && st.story) st.story.dives = (st.story.dives | 0) + 1;
+  // Relikt (0.24.0, data/relics.js RELIC_SOURCES.dive): nur an normalen Spots mit Fund; legendäre nur, solange es freie gibt
+  let relic = null;
+  if (ok && s && P.kind === 'normal') {
+    const RD = RELIC_SOURCES.dive;
+    if (hash2(D.n * 13 + 5, D.total, st.seed + 8221) < RD.chance) {
+      const tier = rollTier(g, RD.w, D.n), skip = offeredRelics(g);
+      const r = rollRelic(g, tier, 31, skip) || (tier === 3 ? rollRelic(g, 2, 32, skip) : null);
+      const e = r && giveRelic(g, r, 'tauchen', true);
+      if (e) relic = e.id;
+    }
+  }
   // Spot verschwindet, nach der Pause kommt ein neuer. Ausnahme (0.21.0): ein misslungener Story-Tauchgang „Pumpwerk“ lässt den Spot liegen.
   const keep = !ok && P.find === 'pumpwerk' && DIVE_PUMP.keep;
   D.n++;
   if (!keep) {
     D.spot = null;
     const [a, b] = DIVE.pause;
-    D.next = st.time + a + Math.floor(hash2(D.n, 31, st.seed + 8101) * (b - a + 1));
+    // Relikt „Herz der Flut“: Spots kommen öfter (Pause geteilt durch relicSpots)
+    D.next = st.time + Math.round((a + Math.floor(hash2(D.n, 31, st.seed + 8101) * (b - a + 1))) / relicSpots(g));
   }
-  g.events.push({ type: 'diveResult', pid: B.pid, ship: B.ship, name: s ? s.name : '', ok, kind: P.kind, find: ok ? P.find : null, keep, got, home, lost, main, small,
+  g.events.push({ type: 'diveResult', pid: B.pid, ship: B.ship, name: s ? s.name : '', ok, kind: P.kind, find: ok ? P.find : null, keep, got, home, lost, main, small, relic,
     dives: st.story ? st.story.dives | 0 : D.total, to: '*' });
   storyEvent(g, 'surface');   // Glocke wieder oben (auch ohne Fund): Branns Satz nach dem ersten Tauchgang
   if (ok) {

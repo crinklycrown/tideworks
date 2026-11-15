@@ -17,6 +17,9 @@ Jedes baubare Gebäude hat genau eine Freischalt-Quelle.
 | Brann (Ruf) | Überlauf-Tor, Brücke, Sortierer, Tor, Schnellband, Pumpen und Rohre, größere Schiffe |
 | Aurel (Ruf) | Fortgeschrittene Gebäude, Strom-Technik, bessere Häuser |
 | Story | Leuchtturm (Akt 2), Taucherglocke (Akt 3), Leuchtturm-Stufen 3 und 4 |
+| Forschung „Reliktkunde“ (ab Akt 2) | Reliktsockel (gewöhnlich) |
+| Brann (Ruf vertraut) | Messingsockel (selten) |
+| Aurel (Ruf vertraut) | Goldener Sockel (legendär) |
 
 Regeln:
 - Splitter und Kreuzung müssen früh verfügbar sein, damit die Förderband-Logistik nicht frustriert.
@@ -99,17 +102,43 @@ Regeln:
 
 ## 8. Relikte und Reliktsockel
 
-- **Reliktsockel:** in drei Stufen (gewöhnlich, selten, legendär), höhere Stufen brauchen teurere Zutaten (z. B. Perlen, Korallen). **Ein Sockel pro Insel**, darin **ein Relikt**.
-- **Relikte:** drei Stufen wie die Sockel; ein Relikt passt nur in einen Sockel gleicher oder höherer Stufe. Wirkung gilt für die ganze Insel.
-- Herkunft: NPC-Handel (Gold), Aufträge, Meerjungfrauen, Tauchgänge (legendäre vor allem hier).
+Umgesetzt in 0.24.0. Alle Zahlen stehen in `src/data/relics.js`, die Logik in `src/sim/relics.js`, das Fenster „Relikte“ (Taste L) in `src/ui/relics.js`.
 
-| Stufe | Beispiele |
-| --- | --- |
-| Gewöhnlich | +5 % Produktionsrate · +10 % Bohrrate · Bänder 10 % schneller · Schiffe dieser Insel 15 % schneller |
-| Selten | +20 % Produktionsrate · −25 % Stromverbrauch · Lager +50 % · Häuser verbrauchen 25 % weniger · +20 s Sauerstoff beim Tauchen |
-| Legendär | Öfen brauchen keine Kohle/Energie · doppelte Produktion einer gewählten Ressource · Kohle wird zu Eisen · „Herz der Flut“ (Tauchspots doppelt so oft) · „Die erste Flamme“ (Ende A) · „Die Krone des Herrschers“ (Ende B) |
+- **Reliktsockel:** drei Gebäude (2×2), **genau einer je Insel mit Hauptkontor**, darin **genau ein Relikt**. Ein Sockel lässt sich aufwerten (U), das Relikt bleibt darin; wird er abgerissen, geht das Relikt zurück in die Sammlung.
+  - Reliktsockel (Stein, gewöhnlich): Holz, Kalkstein, Ziegel. Freischaltung: Forschung „Reliktkunde“, erst ab Akt 2.
+  - Messingsockel (selten): zusätzlich Perlen und Korallen. Freischaltung: Brann, Ruf „vertraut“.
+  - Goldener Sockel (legendär, schimmert, leuchtet nachts): viele Perlen und Muscheln. Freischaltung: Aurel, Ruf „vertraut“.
+- **Relikte:** einzelne Fundstücke in einer **weltweiten Reliktsammlung** (`state.relics`), nicht im Inselinventar. Drei Stufen wie die Sockel; ein Relikt passt in einen Sockel gleicher oder höherer Stufe. Die Wirkung gilt für die ganze Insel des Sockels. Einsetzen, Austauschen und Herausnehmen im Info-Panel des Sockels.
+- **Legendäre Relikte** gibt es je nur einmal im Spiel. Eingesetzt verbrauchen sie **2 Perlen je Spieltag** aus dem Inselinventar (die erste beim Einsetzen). Fehlt eine Perle, ruht die Wirkung, bis wieder eine da ist (Hinweis am Sockel, blasses Relikt auf der Karte, Meldung).
+- **Herkunft:**
+  - Ole: ein gewöhnliches Relikt je Tag im Angebot, ab Ruf „freundlich“ (900 Münzen).
+  - Brann: ein seltenes je Tag, ab Ruf „vertraut“ (3.500 Münzen).
+  - Aurel: ein legendäres je Tag, solange es noch freie gibt, ab Ruf „vertraut“ (15.000 Münzen).
+  - Aufträge: mit 12 % trägt ein neuer Auftrag zusätzlich ein Relikt (Ole gewöhnlich, Brann, Aurel und Inselrat selten).
+  - Tauchgänge (normale Spots mit Fund): mit 25 % ein Relikt, Stufen gewichtet 4 : 3 : 3 (gewöhnlich : selten : legendär). Legendäre fast nur hier.
+  - Meerjungfrauen: vorgeplant (Eintrag in der Herkunft, „bald“).
+  - Die Entscheidung: „Die erste Flamme“ (Ende A) bzw. „Die Krone des Herrschers“ (Ende B) kommen in die Sammlung.
+- Korallen und Muscheln (neu, Baustoffe der Sockel) gibt es bei Tauchgängen.
 
-Balance für legendäre Relikte: jedes nur einmal im Spiel, und sie verbrauchen laufend Perlen, solange sie aktiv sind.
+| Stufe | Relikt | Wirkung auf der Insel |
+| --- | --- | --- |
+| Gewöhnlich | Zahnrad der Uhrmacherzunft | +5 % Produktionsrate |
+| Gewöhnlich | Gesegneter Bohrkopf | +10 % Bohrrate |
+| Gewöhnlich | Rollenglied der Hafenbahn | Bänder 10 % schneller |
+| Gewöhnlich | Kompass des Lotsen | Schiffe dieser Insel (Heimatwerft) 15 % schneller |
+| Selten | Siegel des Werkmeisters | +20 % Produktionsrate |
+| Selten | Glimmende Spule | −25 % Stromverbrauch |
+| Selten | Schlüsselbund des Speichermeisters | Lager (Hauptkontor) +50 % |
+| Selten | Tafel der Genügsamkeit | Häuser verbrauchen 25 % weniger |
+| Selten | Atemmuschel | +20 s Sauerstoff beim Tauchen (nur auf der Heimatinsel) |
+| Legendär | Ewige Glut | Öfen (Schmelzofen, Induktionsofen, Silizium-Ofen) ohne Kohle und ohne Strom |
+| Legendär | Füllhorn der Flutstadt | doppelte Produktion einer beim Einsetzen gewählten Ware |
+| Legendär | Stein der Wandlung | auf der Insel geförderte Kohle kommt als Eisenerz an |
+| Legendär | Herz der Flut | Tauchspots erscheinen doppelt so oft (weltweit) |
+| Legendär (Ende A) | Die erste Flamme | +30 % Produktion, Gebäude brauchen keinen Strom |
+| Legendär (Ende B) | Die Krone des Herrschers | +50 % Produktion, Häuser verbrauchen doppelt so viel |
+
+Koop: Sammlung, Sockel und Wirkungen gehören zur Welt und werden vom Host synchronisiert; Einsetzen und Herausnehmen laufen als Kommando über den Host (bei Getrennten Inseln nur am eigenen Sockel).
 
 ## 9. Enden
 

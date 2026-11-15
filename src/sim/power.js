@@ -4,6 +4,7 @@ import { storeOf } from './mods.js';
 import { ownerOf } from './state.js';
 import { BD, POWER_USE, GENS } from '../data/buildings.js';
 import { flowPower } from './stats.js';
+import { fxPower } from './relics.js';
 
 export const isPowered = (t) => t === 'mast' || GENS.has(t) || t === 'batterie' || POWER_USE[t] != null;
 export function nets(g) {
@@ -36,7 +37,11 @@ export function netDraw(n, amt) {
   return true;
 }
 // Verbraucher zieht amt Strom aus seinem Netz; Bedarf und Versorgung werden für die Strom-Anzeige gezählt
+// Relikte der Insel (sim/relics.js fxPower): weniger Verbrauch, „Die erste Flamme“: gar keiner (zählt dann weder als Bedarf noch als Versorgung)
 export function drawPower(g, b, amt) {
+  const f = fxPower(g, b.isl);
+  if (f <= 0) return true;
+  amt *= f;
   b._pq = (b._pq || 0) + amt;
   const ok = netDraw(netOf(g, b), amt);
   if (ok) b._ps = (b._ps || 0) + amt;

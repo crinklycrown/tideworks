@@ -23,7 +23,8 @@ seit Version 15 mit dem **Freischalt-System**: jedes Gebäude hat genau eine Que
 seit Version 16 mit **Geschichte und NPC-Inseln**: Akte, Auslöser, die Dörfer von Ole, Brann und Aurel, Akt 1 spielbar bis zum Bauplan des Weltenleuchtturms (siehe „Geschichte und NPC-Inseln (Version 16)“),
 seit Version 17 mit **Handel mit den Völkern**: Ruf in vier Stufen, Kaufen und Verkaufen am Steg, Aufträge, Lieferverträge über Routen, wachsende Dörfer, Räucherei und Kogge, Fenster „Völker“ (N) (siehe „Handel mit den Völkern (Version 17)“),
 seit 0.10.0 mit **Cutscenes und Dialogfenster**: Cutscene-Player (320×180, seit 0.16.0 bildschirmfüllend mit weichen Übergängen), Monolog-Fenster mit Porträt, erste echte Szene „Rauch hinter dem Nebel“ bei Ole, Menü „Szenen“ (siehe „Cutscenes und Dialoge (0.10.0)“); seit 0.11.0 der **Prolog „Gestrandet“** vor dem ersten Bild eines neuen Spiels (siehe „Prolog (0.11.0)“);
-seit 0.15.0 (Spielstand Version 18) nach dem ersten Story-Test mit **Extraktor wie der Unloader in Mindustry**, weiter fahrendem Entdecker, Namen und Symbolen der Story-Inseln, gebündelten Meldungen und einer **Kamera, die dem Schiff folgt** (siehe „Nach dem Story-Test (0.15.0)“).
+seit 0.15.0 (Spielstand Version 18) nach dem ersten Story-Test mit **Extraktor wie der Unloader in Mindustry**, weiter fahrendem Entdecker, Namen und Symbolen der Story-Inseln, gebündelten Meldungen und einer **Kamera, die dem Schiff folgt** (siehe „Nach dem Story-Test (0.15.0)“);
+seit 0.24.0 (Spielstand Version 19) mit **Relikten und Reliktsockeln**: 15 Relikte in drei Stufen in einer weltweiten Sammlung (Fenster „Relikte“, L), je Insel ein Sockel (Stein, Messing, Gold), Wirkung auf die ganze Insel, legendäre verbrauchen Perlen; Herkunft Handel, Aufträge, Tauchgänge und die Enden (siehe `docs/SYSTEMS.md` Abschnitt 8, Test in `docs/TEST-RELIKTE.md`).
 
 ## Starten
 
@@ -37,6 +38,7 @@ npm run check:world # Welt-Erzeugung: gleich für gleichen Seed, Einzelspieler-S
 npm run check:coop  # Getrennte Inseln ohne Browser (Besitz, Erlaubnis, Preislisten, Datenschutz, Speichern, Datenrate)
 npm run check:story # Akt 1 mit echtem Segeln, Debug, Speichern, Koop-Ansicht, Migration v15
 npm run check:npc   # Handel mit den Völkern: Ruf, Kaufen/Verkaufen, Preise, Aufträge, Lieferverträge per Route, Dörfer, Speichern, Koop
+npm run check:relics # Relikte (0.24.0): Sockel, Stufen, alle Wirkungen, Perlen-Unterhalt, Handel, Aufträge, Tauchen, Speichern, Migration v18, Spiegel
 ```
 
 **GitHub Pages (seit 0.23.1):** Jeder Push auf `main` baut das Spiel (`.github/workflows/deploy.yml`) und veröffentlicht `dist/`
@@ -70,7 +72,8 @@ src/
                       trade (Preise, Markt, Händler, Münzbuch), events (Ereignisse), wonder (Leuchtturm-Phasen), drones (Drohnen),
                       demo (Demo-Fabrik des Titelbildschirms mit Kamerapfad), ships (Schiffsarten, Entdecker EXPLORE),
                       unlocks (Freischalt-Quellen: Volk, Story, Pläne; Texte „Forschung: …“, „Bei Brann erhältlich“),
-                      story (Akte, Auslöser, Szenen- und Dialog-IDs, Ziel-Satz je Akt), npcs (NPC-Inseln: Band, Optik, Dorf)
+                      story (Akte, Auslöser, Szenen- und Dialog-IDs, Ziel-Satz je Akt), npcs (NPC-Inseln: Band, Optik, Dorf),
+                      relics (Relikte, Sockel, Wirkungen, Unterhalt, Herkunft; seit 0.24.0)
   util/               Mathe (Zufall, Rauschen), Formatierung, tiles.js (Feld-/Chunk-Schlüssel, Zellen, Insel-IDs)
   world/
     worldgen.js       eine Insel aus (Seed, Zelle) erzeugen: Umriss, Typ, Berge/Vulkan, Vorkommen, Bäume, Kontorplatz
@@ -826,6 +829,7 @@ Sand „…düne“ („Muscheldüne“); Vulkan „…glut“ („Ascheglut“)
 | `tideworks.wonder(n, opt)` | Leuchtturm (0.18.0, nur Host): ohne n Zustand; n Stufen fertig (mit Sichtweite); `'fire'` dazu Story-Auslöser `wonder:n` (bei 2: `cs_licht_im_wind` → Akt 3); `'site'` Stufe n fertig und Baustelle n+1 mit allen Waren, `'half'` mit der Hälfte |
 | `tideworks.finale()` | Finale (0.22.0, nur Host): Akt 5, Leuchtturm Stufe 4 fertig, dann Szene `cs_wahrheit` und die Entscheidung; Test in `docs/TEST-FINALE.md` |
 | `tideworks.ending('a'\|'b')`, `tideworks.endingInfo()` | Ende direkt setzen (0.23.0, nur Host, endgültig: vorher Kopie speichern): Szene, Dialog und Folgen; `endingInfo()` zählt Ruinen und eigene Gebäude auf den NPC-Inseln; Test in `docs/TEST-ENDEN.md` |
+| `tideworks.relicsAll()`, `tideworks.pearls(n)`, `tideworks.relics()` | Relikte (0.24.0, nur Host): alle Relikte, die es noch nicht gibt, in die Sammlung; n Perlen (Standard 50, dazu je halb so viele Korallen und Muscheln) auf die Insel unter der Kamera; Sammlung als Liste; Test in `docs/TEST-RELIKTE.md` |
 | `tideworks.mods()` | aktuelle Wirkungen aller Upgrades und Leuchtturm-Phasen (`reveal`, `tradeFreq`, `prod`, `tradePrice`, `evWarn`, `drones`, `powerAll`, `beam` …) |
 
 ## Lagerlogik, Bänder, Strom (Version 10, Spieltest-Runde 1)

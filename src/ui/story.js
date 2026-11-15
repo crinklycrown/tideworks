@@ -11,6 +11,8 @@
    ========================================================= */
 import { CUTSCENES, CHOICES, ACTS, actGoal } from '../data/story.js';
 import { ENDINGS } from '../data/npctrade.js';
+import { RELICS } from '../data/relics.js';
+import { fxLines } from '../sim/relics.js';
 import { ITEMS } from '../data/items.js';
 import { npcName } from '../data/npcs.js';
 import { img, fitScale } from '../gfx/pixelbuffer.js';
@@ -102,14 +104,14 @@ export function onStory(ev) {
     done();
   });
 }
-// Nach dem Ende (0.23.0): was sich geändert hat (sim/ending.js) und das Relikt im Lager
+// Nach dem Ende (0.23.0): was sich geändert hat (sim/ending.js) und das End-Relikt (seit 0.24.0 in der Reliktsammlung)
 function endingToasts(c) {
-  const E = ENDINGS[c], R = E && ITEMS[E.relic];
+  const E = ENDINGS[c], R = E && RELICS[E.relic];
   toast(`${img(SPR.icon.book, 2)}<span><b>Die Geschichte ist erzählt.</b> ${esc(actGoal(game.state.story, {}))} Das Spiel geht frei weiter.</span>`, 'gold', true);
   toast(c === 'a'
     ? `${img(SPR.npc.fig.rat, 2)}<span><b>Der Goldberg gehört dir.</b> Dein Hauptkontor steht an Aurels altem Steg, seine Villen sind Brandruinen. Der Inselrat handelt jetzt am Goldberg. Ole und Brann geben dir bessere Preise, und ihre Dörfer feiern ein Fest.</span>`
     : `${img(SPR.npc.fig.aurel, 2)}<span><b>Aurels Insel gehört dir</b>, mit allen Gebäuden und einem Hauptkontor. Pfahldorf und Werkstattbucht liegen in Ruinen, dort handelt niemand mehr.</span>`, 'gold', true);
-  if (R) toast(`${img(SPR.item[E.relic], 3)}<span><b>${esc(R.name)}</b> (${esc(R.tier)}es Relikt) liegt im Lager deiner Heimatinsel. Seine Kraft erwacht mit den Reliktsockeln.</span>`, 'gold', true);
+  if (R) toast(`${img(SPR.relic[E.relic], 3)}<span><b>${esc(R.name)}</b> (legendäres Relikt) liegt in deiner Reliktsammlung (L): ${esc(fxLines(R.fx).join(', '))}. Setz es in einen Goldenen Sockel.</span>`, 'gold', true);
 }
 // Gesehene Szene erneut abspielen (Menü „Szenen“, Debug): nur hier, ohne Wirkung auf das Spiel
 export function replayScene(id) { return playCutscene(id, undefined, false); }

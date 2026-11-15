@@ -13,6 +13,8 @@ import { pipeSprites, makePumpe, makeTank, makeKraftwerk, makeSaugpumpe, makeRea
 import { FLUIDS, PIPES } from '../data/fluids.js';
 import { makeCoin, makeWrench, makeEventIcons, makeTraderShip, makeHandel, makeLighthouse, makeScaffold, LIGHTHOUSE_H, makeHub, makeDKiste, makeDrone } from './sprites/endgame.js';
 import { npcSprites, npcSprite } from './sprites/npc.js';
+import { makeRelicIcon, makeRelicShadow, makeSockel, makeRelicButton } from './sprites/relics.js';
+import { RELIC_ORDER } from '../data/relics.js';
 import { makeDrift, makeJetsam, makeWreck, makeCrate, makeFlagMarker, makeCross, ITEM_COL } from './sprites/sea.js';
 import { makeSun, makeMoon, makeHammer, makeFlask, makeAnchor, makeChart, makeGear, makeCatLogistik, makeCatAbbau, makeCatVerarbeitung, makeCatFluessig, makeCatSchiff, makeCatChemie, makeBook, makeUpBadge, makePlus, makeMinus, makeFlag,
   makeUpgrade, makeBlueprint, makeStatus, makeUndo, makeRedo, makePause, makePlay, makeKey, logoIconPB, makeLogo, makeMapIcon, makeMarkHere, makeMarkWarn, makeMarkHelp, makeChat } from './sprites/ui.js';
@@ -117,6 +119,11 @@ export function buildSprites() {
   SPR.icon.bubbles = spr(fromTpl(['...........', '.......WW..', '......WHHW.', '......WHHW.', '...W...WW..', '..WHW......', '...W..WWW..', '.....WHHHW.', '.....WHHHW.', '......WWW..', '...........'],
     { W: '#e8f8ff', H: '#6ec8f0' }, '#1e4a6a'), 5, 5);
   SPR.icon.markHere = makeMarkHere(); SPR.icon.markWarn = makeMarkWarn(); SPR.icon.markHelp = makeMarkHelp(); SPR.icon.chat = makeChat();
+  // Relikte (0.24.0): Symbol je Relikt, Umriss für noch nicht gefundene, Sockel in drei Stufen, Knopf „Relikte“
+  SPR.relic = {}; SPR.relicShadow = {};
+  RELIC_ORDER.forEach(id => { SPR.relic[id] = makeRelicIcon(id); SPR.relicShadow[id] = makeRelicShadow(id); });
+  SPR.b.sockel1 = makeSockel(1); SPR.b.sockel2 = makeSockel(2); SPR.b.sockel3 = makeSockel(3);
+  SPR.icon.relic = makeRelicButton();
   // NPC-Inseln: Stege je NPC, Dorfgebäude, Figuren
   SPR.npc = npcSprites();
   SPR.logo = makeLogo(); SPR.logoIcon = spr(logoIconPB(), 12, 12);

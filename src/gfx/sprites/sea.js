@@ -79,4 +79,4 @@ export const ITEM_COL = { holz: '#a87444', kohle: '#30303a', eisenerz: '#a85a3c'
   kunststoff: '#7fd8e8', schmiermittel: '#e8b020', neodym: '#c8b8e8', magnet: '#c4302a',
   fass: '#8a5a32', fass_wasser: '#6ec8f0', fass_rohoel: '#2e2018', fass_saeure: '#c8e040',
   raeucherfisch: '#c8782a', seil: '#d8b870', netz: '#8a9a8a', zahnrad: '#e0b040', feder: '#b4c4d8', rohrteil: '#9aa0aa', uhrwerk: '#ffd23f', zelle: '#5ab848', perle: '#f4eef8',
-  schrott: '#7a6a5a', glockenseil: '#c8a060', glockenhaube: '#d8a440', erste_flamme: '#ffd65a', krone: '#ffd23f' };
+  schrott: '#7a6a5a', glockenseil: '#c8a060', glockenhaube: '#d8a440', koralle: '#e8604a', muschel: '#f0d8c0' };

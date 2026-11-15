@@ -36,6 +36,7 @@ import { DRONES } from '../data/drones.js';
 import { WONDER, BEAM } from '../data/wonder.js';
 import { wonderFull } from '../sim/wonder.js';
 import { drawPeersWorld, drawPeersScreen } from './peers.js';
+import { pedestalState } from '../sim/relics.js';
 
 let ctx = null;
 export function initRenderer(canvas) { ctx = canvas.getContext('2d'); }
@@ -443,6 +444,27 @@ function drawCableIcons(c0, c1, r0, r1, revealed) {
   }
 }
 
+// Reliktsockel (0.24.0): eingesetztes Relikt klein oben auf der Schale (ruhend: blass), Goldener Sockel schimmert
+// (ein heller Streifen wandert über die Säule) und leuchtet nachts; mit aktivem Relikt leuchten auch die anderen Sockel.
+function drawRelicOn(b, s, left, top, now, nightF, glows) {
+  const st = pedestalState(game, b), e = st.e;
+  if (s.shine) {
+    const [x0, y0, w, h] = s.shine, ph = ((now * 0.35 + b.id * 0.13) % 1.6) * (w + h);
+    ctx.globalAlpha = 0.55;
+    for (let k = 0; k < h; k++) { const x = Math.round(ph - k); if (x >= 0 && x < w) tint(left + x0 + x, top + y0 + k, 1, 1, '#fffbe8'); }
+    ctx.globalAlpha = 1;
+  }
+  if (e && SPR.relic[e.id]) {
+    const r = SPR.relic[e.id], bob = st.active ? Math.round(Math.sin(now * 2 + b.id) * 0.6) : 0;
+    if (!st.active) ctx.globalAlpha = 0.45;
+    ctx.drawImage(r.cv, left + s.relic[0] - r.ax, top + s.relic[1] - r.h + 1 + bob);
+    ctx.globalAlpha = 1;
+    // aktiv: ab und zu ein Funkeln über dem Relikt
+    if (st.active && Math.sin(now * 3.1 + b.id * 1.7) > 0.93) tint(left + s.relic[0] + 4, top + s.relic[1] - r.h - 1, 1, 1, '#ffffff');
+  }
+  if (nightF > 0 && (s.tier === 3 || st.active)) glows.push([left + s.glow[0], top + s.glow[1], s.tier === 3 ? 22 : 16, s.tier === 3 ? 0.5 : 0.35, s.tier === 3 ? '#ffd23f' : null]);
+}
+
 // now = Sekunden (Animationen), nowMs = Millisekunden (Interpolation zwischen Snapshots)
 // Weltenleuchtturm im Bau: nächste Phase wächst von unten mit dem Fortschritt, darüber das Gerüst
 // Solange Waren fehlen (Baustelle sammelt), stehen Kisten der gelieferten Waren am Fuß des Turms
@@ -718,6 +740,7 @@ export function draw(now, nowMs) {
       ctx.drawImage(s.cv, left, top);
       flagFrame(b, left, top);
       if (b.t === 'leuchtturm') drawWonderBuild(b, left, top + s.h);
+      if (s.relic) drawRelicOn(b, s, left, top, now, nightF, glows);
       if (s.patch) { const P = s.patch, ex = b.t === 'dkiste' ? (b.dw && b.dw.it) : b.ex; if (b.t === 'dkiste' && !ex) { /* keine Anforderung */ } else if (ex) tint(left + P[0], top + P[1], P[2], P[3], ITEM_COL[ex] || '#c8ccd4'); else { tint(left + P[0], top + P[1], P[2] >> 1, P[3] >> 1, '#e8504a'); tint(left + P[0] + (P[2] >> 1), top + P[1], P[2] >> 1, P[3] >> 1, '#7cc24f'); tint(left + P[0], top + P[1] + (P[3] >> 1), P[2] >> 1, P[3] >> 1, '#3f8fe8'); tint(left + P[0] + (P[2] >> 1), top + P[1] + (P[3] >> 1), P[2] >> 1, P[3] >> 1, '#ffd23f'); } }
       if (s.bar) { const bh = Math.round(s.bar[3] * clamp((b.e || 0) / storeOf(game, 'batterie'), 0, 1)); if (bh) tint(left + s.bar[0], top + s.bar[1] + s.bar[3] - bh, s.bar[2], bh, '#7cc24f'); }
       const act = buildingActive(b);

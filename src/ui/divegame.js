@@ -23,7 +23,9 @@ import { ITEMS } from '../data/items.js';
 import { SPR } from '../gfx/sprites.js';
 import { img } from '../gfx/pixelbuffer.js';
 import { esc, fmt } from '../util/format.js';
-import { ui, simClient } from './context.js';
+import { ui, simClient, game } from './context.js';
+import { relicAir } from '../sim/relics.js';
+import { RELICS } from '../data/relics.js';
 import * as NET_S from '../net/session.js';
 import { WELD_ARMS, handOff, art, drawRays, drawMotes, makeSchool, drawFish, drawBell, drawChain, itemSprite, BRASS, SAND, HOSE, WATER, DIVER_FX, DIVER_FY, HOSE_AT, HAND_AT } from '../divegame/art.js';
 import { buildWorld, drawWeeds, BELL_X, BELL_Y } from '../divegame/world.js';
@@ -77,7 +79,8 @@ let pulseVig = null;
 const worldOf = (o, stage) => buildWorld({ task: o.task, act: o.act, seed: o.seed, target: o.target, weld: o.weld, junk: DIVE_JUNK, cfg: CFG,
   scene: o.scene, stage, gate: DIVE_PUMP.gate, piles: DIVE_PUMP.piles });
 function newGame(o) {
-  const Wd = worldOf(o, 'gate'), airMax = CFG.air * (o.scene === 'pumpwerk' ? DIVE_PUMP.air : 1);
+  // Relikt „Atemmuschel“ auf der eigenen Heimatinsel (sim/relics.js relicAir): zusätzliche Sekunden Sauerstoff
+  const Wd = worldOf(o, 'gate'), airMax = CFG.air * (o.scene === 'pumpwerk' ? DIVE_PUMP.air : 1) + (game.state ? relicAir(game) : 0);
   const dv = { x: BELL_X + 6, y: 92, vx: 0, vy: 0, face: 1, anim: 0, mode: 'swim', ground: false, tx: null, ty: null };
   const rope = Array.from({ length: 22 }, (_, i) => ({ x: BELL_X, y: 50 + i, px: BELL_X, py: 50 + i }));
   return {
@@ -513,6 +516,8 @@ function fillResult(g) {
   else {
     if (r.main && r.main.length) h += `<div class="dv-sub">Beute</div>${lootRows(r.main)}`;
     if (r.small && r.small.length) h += `<div class="dv-sub">Kleinkram</div>${lootRows(r.small)}`;
+    // Relikt (0.24.0): kommt in die Reliktsammlung
+    if (r.relic && RELICS[r.relic]) h += `<div class="dv-sub">Relikt</div><div class="dv-row">${img(SPR.relic[r.relic], 3)}<span><b>${esc(RELICS[r.relic].name)}</b><br><span class="dv-muted">${esc(RELICS[r.relic].desc)} Liegt jetzt in deiner Reliktsammlung (L).</span></span></div>`;
     const where = [];
     if (r.got && r.got.length) where.push('an Bord');
     if (r.home && r.home.length) where.push('ins Lager der Heimatinsel');

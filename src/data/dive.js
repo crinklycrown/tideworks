@@ -48,7 +48,10 @@ export const DIVE_LOOT = {
     { it: 'kupfererz', w: 2.5, n: [15, 30] },
     { it: 'kohle',     w: 2,   n: [20, 40] },
     { it: 'kalk',      w: 1,   n: [15, 30] },
-    { it: 'perle',     w: 1.5, n: [1, 3] }
+    { it: 'perle',     w: 1.5, n: [1, 3] },
+    // 0.24.0: Baustoffe der Reliktsockel (data/relics.js). Relikte selbst würfelt sim/dive.js extra (RELIC_SOURCES.dive)
+    { it: 'koralle',   w: 1.5, n: [2, 5] },
+    { it: 'muschel',   w: 1.5, n: [3, 6] }
   ] },
   story: { rolls: [1, 1], list: [{ it: 'schrott', w: 1, n: [5, 10] }] }
 };
@@ -107,5 +110,6 @@ export const DIVE_JUNK = [
   { it: 'kupfererz', n: [2, 4], w: 2 },
   { it: 'eisenerz', n: [2, 4], w: 2 },
   { it: 'kohle', n: [2, 5], w: 1.5 },
-  { it: 'perle', n: [1, 1], w: 0.6 }
+  { it: 'perle', n: [1, 1], w: 0.6 },
+  { it: 'muschel', n: [1, 2], w: 0.8 }   // 0.24.0
 ];

@@ -18,6 +18,7 @@ import { inBody, isStore, stockOf, storeCap } from './kontor.js';
 import { powerOf } from './mods.js';
 import { dkAccept } from './drones.js';
 import { wonderAccept } from './wonder.js';
+import { fxBelt, fxDouble } from './relics.js';
 
 // Verbrennungsanlage: Brennwert als Strom in ihren Speicher
 export function burn(g, k, item, inc) {
@@ -126,7 +127,8 @@ export function emit(g, b, item) {
   }
   return false;
 }
-export function addOut(g, b, item, n) { const M = pst(g, ownerOf(b)).stats.made; b.out[item] = (b.out[item] || 0) + n; M[item] = (M[item] || 0) + n; flowAdd(g, b.isl, 'm', item, n, b.t); }
+// Relikt „Füllhorn“ (sim/relics.js fxDouble): die gewählte Ware kommt doppelt
+export function addOut(g, b, item, n) { if (fxDouble(g, b.isl) === item) n *= 2; const M = pst(g, ownerOf(b)).stats.made; b.out[item] = (b.out[item] || 0) + n; M[item] = (M[item] || 0) + n; flowAdd(g, b.isl, 'm', item, n, b.t); }
 export function flush(g, b) { for (const it in b.out) if (b.out[it] > 0 && emit(g, b, it)) b.out[it]--; }
 // Richtung, in die ein Teil an (x, y) Items abgibt, die bei b ankommen können (-1 = keine / alle Seiten).
 // Zuläufe für die Kurvenerkennung: Bänder, Tor (Pfeilrichtung), Kreuzung (Ausgang in Richtung b),
@@ -187,10 +189,11 @@ export function beltShape(g, b) {
 const EPS = 1e-6;
 function tickBelt(g, b, dt) {
   if (!b.it) return;
-  b.p += dt * BD[b.t].speed;
+  const sp = BD[b.t].speed * fxBelt(g, b.isl);   // Relikt der Insel: Bänder schneller (gilt auch für Teile dahinter)
+  b.p += dt * sp;
   if (b.p < 1 - EPS) return;
   b.p = 1;
-  if (offer(g, b.x + DIRS[b.d][0], b.y + DIRS[b.d][1], b.it, b.d, BD[b.t].speed)) { if (g.inspect.has(b.id)) ioAdd(g, b, 'out', b.it); b.it = null; }
+  if (offer(g, b.x + DIRS[b.d][0], b.y + DIRS[b.d][1], b.it, b.d, sp)) { if (g.inspect.has(b.id)) ioAdd(g, b, 'out', b.it); b.it = null; }
 }
 // Tempo eines Splitters/Überlauf-Tors: das des Bands, von dem das Item kam (ohne Angabe: Fließband Mk1)
 const spOf = (b) => b.sp || BD.band.speed;

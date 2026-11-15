@@ -4,6 +4,7 @@ import { RECIPES_OF, recipePower } from './recipes.js';
 import { DRILLS, HOUSES } from './mining.js';
 import { PIPES, PUMPS } from './fluids.js';
 import { DRONES } from './drones.js';
+import { PEDESTAL_COST } from './relics.js';
 
 export const BUILD_CATS = [
   { id: 'logistik',     name: 'Logistik',      icon: 'catLogistik' },
@@ -103,6 +104,13 @@ export const BD = {
                     desc: '2 Bewohner. Nimmt alle {house} s 2 Fisch + 1 Holz aus dem Kontor und legt dafür 1 Skizze ins Kontor.' },
   buerger:        { name: 'Bürgerhaus', pl: 'Bürgerhäuser',         cat: 'wohnen',       stufe: 2, w: 2, h: 2, cost: { ziegel: 30, eisen: 10, glas: 10 }, tech: 'handwerk',
                     desc: '4 Bewohner. Nimmt alle {house} s 2 Fisch, 1 Werkzeug und 1 Glas aus dem Kontor und legt dafür 1 Bauplan ins Kontor.' },
+  // Reliktsockel (0.24.0, data/relics.js): genau einer je Insel mit Hauptkontor, darin ein Relikt; Aufwerten 1 → 2 → 3
+  sockel1:        { name: 'Reliktsockel', pl: 'Reliktsockel',         cat: 'wohnen',       stufe: 3, w: 2, h: 2, cost: PEDESTAL_COST.sockel1, tech: 'reliktkunde',
+                    desc: 'Steinsockel für ein gewöhnliches Relikt. Höchstens einer je Insel, nur auf Inseln mit Hauptkontor. Das Relikt wirkt auf die ganze Insel. Einsetzen und Herausnehmen im Info-Panel, die Sammlung zeigt das Fenster „Relikte“ (L).' },
+  sockel2:        { name: 'Messingsockel', pl: 'Messingsockel',       cat: 'wohnen',       stufe: 4, w: 2, h: 2, cost: PEDESTAL_COST.sockel2,
+                    desc: 'Messingsockel für ein seltenes oder gewöhnliches Relikt. Höchstens ein Sockel je Insel. Entsteht auch durch Aufwerten eines Reliktsockels; das Relikt bleibt darin.' },
+  sockel3:        { name: 'Goldener Sockel', pl: 'Goldene Sockel',    cat: 'wohnen',       stufe: 5, w: 2, h: 2, cost: PEDESTAL_COST.sockel3,
+                    desc: 'Leuchtender Goldsockel, hält jedes Relikt, auch ein legendäres. Höchstens ein Sockel je Insel. Legendäre Relikte verbrauchen Perlen aus dem Inselinventar.' },
   werft:          { name: 'Werft', pl: 'Werften',              cat: 'schifffahrt',  stufe: 2, w: 3, h: 3, cost: { holz: 150, eisen: 30 }, tech: 'schiffbau',
                     desc: 'Direkt am Meer bauen. Baut Frachtschiffe für Handelsrouten und (nach der Kartografie) schnelle Entdecker.' },
   handelskontor:  { name: 'Handelskontor', pl: 'Handelskontore',   cat: 'schifffahrt',  stufe: 2, w: 2, h: 2, cost: { holz: 60, eisen: 10 }, steg: true, tech: 'schiffbau',
@@ -142,7 +150,7 @@ export const NPC_BLD = new Set(Object.keys(BD).filter(t => BD[t].npc));
 export const BUILD_ORDER = ['band', 'band2', 'band3', 'splitter', 'ueberlauf', 'kreuzung', 'bandbruecke', 'sortierer', 'tor', 'extraktor', 'kiste', 'drohnenhafen', 'dkiste', 'saege', 'fischer', 'bohrer', 'bohrer2', 'multibohrer',
   'schmelzofen', 'drahtzieherei', 'werkzeug', 'raeucherei', 'induktionsofen', 'graphitpresse', 'siliziumofen', 'assembler', 'pyrolyseofen', 'reaktor',
   'verbrennung', 'kraftwerk', 'geothermie', 'mast', 'batterie', 'rohr', 'rohr2', 'rohr3', 'pumpe', 'saugpumpe', 'tank', 'abfueller', 'entleerer',
-  'huette', 'buerger', 'ingenieur', 'werft', 'handelskontor', 'handel', 'leuchtturm'];
+  'huette', 'buerger', 'ingenieur', 'sockel1', 'sockel2', 'sockel3', 'werft', 'handelskontor', 'handel', 'leuchtturm'];
 // Gebäude je Kategorie in Menü-Reihenfolge
 export const catBuildings = (cat) => BUILD_ORDER.filter(t => BD[t].cat === cat);
 export const FLAT = new Set(['band', 'band2', 'band3', 'splitter', 'ueberlauf', 'kreuzung', 'bandbruecke', 'sortierer', 'tor']);   // flache Logistik-Teile
@@ -165,7 +173,7 @@ export const GENS = new Set(['verbrennung', 'kraftwerk', 'geothermie']);   // St
 export const DRILL = new Set(Object.keys(DRILLS));                          // Bohrer (Mehrheitsregel)
 export const HOUSE = HOUSES;
 // Aufwerten (Info-Panel, Werkzeug „Aufwerten“, Taste U): Gebäude → nächste Stufe gleicher Größe. Weitere Paare nur hier eintragen.
-export const UPGRADE_TO = { band: 'band2', band2: 'band3', rohr: 'rohr2', rohr2: 'rohr3', bohrer: 'bohrer2', huette: 'buerger', buerger: 'ingenieur' };
+export const UPGRADE_TO = { band: 'band2', band2: 'band3', rohr: 'rohr2', rohr2: 'rohr3', bohrer: 'bohrer2', huette: 'buerger', buerger: 'ingenieur', sockel1: 'sockel2', sockel2: 'sockel3' };
 // Mehrzahl eines Gebäudenamens (Beschriftungen wie „14 Fließbänder gebaut“)
 export const plName = (t, n) => n === 1 ? BD[t].name : (BD[t].pl || BD[t].name);
 // Gebäude, die Items auf Bänder ausgeben (Info-Panel warnt ohne Ausgabe-Band)

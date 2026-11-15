@@ -45,16 +45,18 @@ export const ITEMS = {
   uhrwerk:    { name: 'Uhrwerk',       burn: 1,  kind: 'end', npc: 'aurel' },
   zelle:      { name: 'Batteriezelle', burn: 1,  kind: 'end', npc: 'aurel' },
   perle:      { name: 'Perle',         burn: 1,  kind: 'end' },   // kauft Aurel; Quelle: Tauchgänge (data/dive.js), später Meerjungfrauen
+  // Schätze des Meeres (0.24.0): Baustoffe der Reliktsockel (data/relics.js); Quelle: Tauchgänge, später Meerjungfrauen
+  koralle:    { name: 'Koralle',       burn: 1,  kind: 'end' },
+  muschel:    { name: 'Muschel',       burn: 1,  kind: 'end' },
   // Taucherglocke (0.19.0): Schrott aus Tauchgängen (kauft Brann), Teile der Glocke (bell: nur einmal gebraucht, Montage in der Werft, data/dive.js)
   schrott:     { name: 'Schrott',      burn: 1,  kind: 'roh' },
   glockenseil: { name: 'Glockenseil',  burn: 2,  kind: 'end', npc: 'ole', bell: true },
   glockenhaube: { name: 'Messingglocke mit Bullauge', burn: 1, kind: 'end', npc: 'brann', bell: true },
   skizze:     { name: 'Skizze',        burn: 1,  kind: 'plan' },
   bauplan:    { name: 'Bauplan',       burn: 1,  kind: 'plan' },
-  schaltplan: { name: 'Schaltplan',    burn: 1,  kind: 'plan' },
-  // End-Relikte (0.23.0, Platzhalter): je nach Ende eins im Lager der Heimatinsel; Wirkung kommt mit dem Relikt-System (docs/SYSTEMS.md 8)
-  erste_flamme: { name: 'Die erste Flamme',        burn: 0, kind: 'relikt', tier: 'legendär', end: 'a' },
-  krone:        { name: 'Die Krone des Herrschers', burn: 0, kind: 'relikt', tier: 'legendär', end: 'b' }
+  schaltplan: { name: 'Schaltplan',    burn: 1,  kind: 'plan' }
+  // Relikte sind seit 0.24.0 keine Waren mehr, sondern Einträge der Reliktsammlung (data/relics.js, sim/relics.js).
+  // Die End-Relikte aus 0.23.0 (erste_flamme, krone) wandern beim Laden aus dem Inselinventar in die Sammlung (save/serialize.js v18 → v19).
 };
 export const ITEM_ORDER = Object.keys(ITEMS);
 export const PLAN_ITEMS = ITEM_ORDER.filter(it => ITEMS[it].kind === 'plan');

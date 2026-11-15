@@ -905,3 +905,52 @@ Ergebnis: **Koop braucht keinen eigenen Server und funktioniert auf GitHub Pages
 
 - In den GitHub-Einstellungen muss **Settings → Pages → Source** auf „GitHub Actions“ stehen, sonst wird der Workflow nicht veröffentlicht.
 - Koop über die veröffentlichte Seite mit zwei Rechnern einmal echt testen.
+
+## Relikte und Reliktsockel (0.24.0, Spielstand Version 19) – Entscheidungen, Abweichungen, Tests
+
+Umgesetzt nach `docs/SYSTEMS.md` Abschnitt 8 (an das Umgesetzte angepasst). Zahlen: `src/data/relics.js`, Logik: `src/sim/relics.js`, Fenster und Info-Panel: `src/ui/relics.js`, Grafik: `src/gfx/sprites/relics.js`. Testanleitung: `docs/TEST-RELIKTE.md`.
+
+### Entscheidungen
+
+- **Sammlung statt Ware.** Relikte sind Einträge in `state.relics.list` (Nummer, id, Sockel, Insel, gewählte Ware, ruht, nächste Perle, Herkunft), nicht im Inselinventar. `got` zählt, was es je gab; legendäre gibt es dadurch nur einmal, auch wenn eins verkauft oder anderswo gefunden wurde. Gewöhnliche und seltene können mehrfach vorkommen (z. B. zweimal das Zahnrad für zwei Inseln).
+- **Sockel = drei Gebäude** (`sockel1`–`sockel3`, 2×2, Kategorie Wohnen) mit dem bestehenden **Aufwerten** (UPGRADE_TO). Das Relikt hängt am Gebäude über die Gebäude-ID, bleibt beim Aufwerten und geht beim Abriss zurück in die Sammlung. Nur auf Inseln mit Hauptkontor (der Unterhalt kommt aus dem Inselinventar). Nicht in Blaupausen.
+- **Kosten** in `PEDESTAL_COST`: Beim Aufwerten wird der alte Sockel voll erstattet, der neue bezahlt; die Werte sind so gewählt, dass die nächste Stufe netto nur Perlen/Korallen bzw. Perlen/Muscheln und etwas Ziegel kostet.
+- **Freischaltung:** neue Forschung „Reliktkunde“ (Ast Wohnen, Stufe 3, nach Handwerk) mit neuem Feld `act: 2` an der Forschung: erst ab Akt 2 erforschbar (`actOk` in `sim/state.js`, Skilltree zeigt „Akt 2 der Geschichte“). Ohne Geschichte (Getrennte Inseln) frei. Messing- und Goldsockel über `UNLOCKS` bei Brann bzw. Aurel ab „vertraut“ (wie die alten Platzhalter). Der Testmodus („Alles freischalten“) erforscht Reliktkunde auch in Akt 1.
+- **Wirkungen** laufen nur über `relicFx(g, Insel)` (zwischengespeichert, neu berechnet bei jeder Änderung über `relics.ver` bzw. bei einem neuen Spiegel-Objekt). Eingehängt an diesen Stellen:
+  - Produktion (`fxProd`): Rezepte, Sägewerk, Fischer, Bohrer (zusätzlich `drill`). Wie beim Leuchtturm-Bonus endet ein Durchgang auf einem ganzen Takt (0,1 s), +5 % sind deshalb bei kurzen Rezepten etwas weniger (gemessen: 100 → 102 Eisen in 300 s beim Schmelzofen; bei Bohrern genau).
+  - Bänder (`fxBelt`): Tempo des Bands, Splitter, Überlauf-Tor und Sortierer dahinter übernehmen es wie bisher vom Band. Die Interpolation im Spiegel rechnet weiter mit dem Grundtempo (leichtes Nachziehen, nur optisch).
+  - Schiffe (`fxShip`): Relikt der Insel der **Werft, in der das Schiff gebaut wurde** (`s.home`). Schiffe ohne Heimatwerft (Startschiff aus Debug, alte Stände) bekommen nichts.
+  - Strom (`fxPower` in `drawPower`): Verbrauch × 0,75 bzw. 0 („Die erste Flamme“: dann zählt der Verbraucher weder als Bedarf noch als Versorgung). Erzeuger unverändert.
+  - Lager (`fxCap` in `capOf`): Hauptkontor × 1,5. Lagerkisten und Handelskontore nicht.
+  - Häuser (`fxHouse`): Verbrauch × Faktor; Bruchteile sammeln sich je Haus in `b.hc` und werden ganzzahlig entnommen (−25 %: 2 Fisch → im Mittel 1,5). Pläne liefern sie unverändert.
+  - Ewige Glut (`RELIC_FURNACES`): Schmelzofen und Induktionsofen ohne Kohle-Zutat, Induktions- und Silizium-Ofen ohne Strom mit voller Geschwindigkeit. Der Pyrolyse-Ofen bewusst nicht (dort ist Kohle der Rohstoff). Kohle, die per Band kommt, bleibt im Puffer liegen (das Band staut, bis man es umleitet). Beim Rezeptwechsel gibt ein Durchgang ohne Kohle keine Kohle zurück (`b.nk`).
+  - Füllhorn (`fxDouble` in `addOut`): die gewählte Ware kommt doppelt aus jedem Produktionsgebäude der Insel (auch Bohrer). Wählbar: Rohstoffe, Nahrung, Zwischen- und Endprodukte ohne Waren der Völker. Ohne gewählte Ware lässt es sich nicht einsetzen; die Ware lässt sich im Info-Panel umstellen.
+  - Stein der Wandlung: Bohrer auf Kohle geben Eisenerz aus (Mehrheitsregel und Anzeige des Vorkommens bleiben).
+  - Herz der Flut: Pause bis zum nächsten Tauchspot geteilt durch `relicSpots` (2). Gilt weltweit, solange es irgendwo eingesetzt ist und nicht ruht.
+  - Atemmuschel: zusätzliche Luft im Minispiel, wenn sie auf der **Heimatinsel des Tauchers** liegt (Koop: die des Mitspielers bei Getrennten Inseln). Die Luft rechnet der Rechner des Tauchers (wie bisher), der Host prüft sie nicht.
+- **Unterhalt** (`RELIC_UPKEEP`, 2 Perlen je Spieltag): stückweise im Abstand von einem halben Tag, die erste Perle beim Einsetzen; fehlt eine, ruht die Wirkung (`off`) und es wird jede Sekunde neu versucht. Auch die End-Relikte zahlen (sie sind legendär). Ruht ein Relikt, zeigt die Karte es blass, das Info-Panel einen Hinweis, dazu eine Meldung an alle.
+- **Herkunft:**
+  - Völker: `N.relic` = ein Angebot je Tag (`N.rday`), ab der Rufstufe aus `RELIC_SOURCES.npc`; gekauft wird mit „Kaufen“ im Fenster Völker, ein Schiff muss am Steg liegen (wie Pläne und Seekarten). Ein legendäres, das inzwischen anderswo gefunden wurde, verschwindet aus dem Angebot.
+  - Aufträge: neue Aufträge tragen mit 12 % ein Relikt (`o.relic`), es kommt beim Erledigen. Aurel und Inselrat geben seltene, keine legendären (sonst könnten Angebot und Auftrag dasselbe legendäre versprechen).
+  - Tauchgänge: 25 % je erfolgreichem normalem Tauchgang. Wird „legendär“ gewürfelt, aber es ist keins mehr frei, gibt es ein seltenes. Legendäre im Angebot eines Volks sind ausgenommen.
+  - Meerjungfrauen: nur als Eintrag „bald“ in der Herkunft (`RELIC_SOURCES.mermaid`, `RELIC_SOURCE_TEXT`).
+  - Enden: `giveRelic(…, 'ende')` statt Ware im Lager; die Meldung zum Ende nennt das Relikt und seine Wirkung.
+- **Korallen und Muscheln** sind neue Waren (Baustoffe der Sockel), kommen aus Tauchgängen (Beute und Kleinkram), Grundpreis in `NPC_GOODS` (niemand kauft oder verkauft sie bisher; das kommt mit den Meerjungfrauen).
+- **Koop:** `state.relics` geht wie `dive` und `npc` in jeden Snapshot (Host) bzw. als Teil `relics` in die Koop-Snapshots (nur nach Änderung). Einsetzen und Herausnehmen (`relicPut`, `relicTake`) sind normale Kommandos über den Host; bei Getrennten Inseln greift die bestehende Regel „nur eigene Gebäude“. `relicDebug` nur Host.
+- **Spielstand Version 19:** `migrate18` legt „Die erste Flamme“ bzw. „Krone“ aus dem Inselinventar in die Sammlung und entfernt die alten Waren `erste_flamme`/`krone` (es gibt sie nicht mehr als Ware). Hinweisfenster beim ersten Laden. `cleanRelics` prüft beim Laden, dass eingesetzte Relikte in einem vorhandenen, passenden Sockel stecken (je Sockel eins), sonst kommen sie zurück in die Sammlung.
+- **Taste L** für das Fenster „Relikte“ (frei war L; R ist Drehen). Knopf in der Leiste zwischen Völker und Karte.
+- **Grafik:** 15 Relikt-Symbole (13×13), Umrisse für noch nicht gefundene, drei Sockel (Stein mit Rissen, Messing mit Nieten und blauer Einlage, Gold mit rotem Stein, wanderndem Glanzstreifen und Leuchten in der Nacht). Das eingesetzte Relikt steht klein oben auf der Schale und wippt leicht, solange es wirkt. Zwei Symbole nach dem ersten Bild überarbeitet (Füllhorn sah aus wie ein Käsestück, die Spirale der Atemmuschel fehlte).
+
+### Geprüft
+
+- `npm run check:relics` (neu, Seed 4711): Reliktkunde erst ab Akt 2, Sockel nur einer je Insel, Debug nur Host, alle 15 Relikte in der Sammlung, Stufenregel, jede Wirkung gemessen (Schmelzofen schneller, Bohrer +10 % und +5 %, Band 0,55 statt 0,5 in 0,5 s, Schiff ×1,15 nur mit Heimatwerft, Lager ×1,5, Strom −25 % und 0, Häuser 6/3 statt 8/4 bei vier Prüfungen und doppelt mit der Krone, Luft +20 s, Spots ×2, Öfen ohne Kohle und Strom, Füllhorn doppelte Kohle, Kohle → Eisenerz), Aufwerten mit Relikt darin, Unterhalt (Pause, Fortsetzung, 2 Perlen je Tag), Abriss gibt das Relikt zurück, legendär nur einmal, Angebot bei Ole (ein Kauf je Tag, neuer Tag neues Angebot), Aurel ohne Angebot, wenn alle legendären vergeben sind, Auftrag mit Relikt, Tauchgang mit Relikt, Speichern/Laden, Migration v18 mit „Die erste Flamme“ im Lager, Koop-Spiegel mit Befehlen eines Mitspielers.
+- Alle übrigen Prüfskripte grün: `check:tree`, `check:world`, `check:coop`, `check:story`, `check:npc`, `check:extract`, `check:wonder`, `check:dive`, `check:akt4`, `check:ending`, dazu `npm run build`. Angepasst, weil sie den alten Stand fest erwarteten: `check:ending` (Relikt in der Sammlung statt im Lager), `check:npc` (Relikte statt Platzhalter im Angebot), `check:extract` (Spielstand ab Version 18), `check:world` (Start-Fingerabdruck ohne die leere Sammlung, wie schon bei Geschichte und Tauchen).
+- **Gerenderte Einzelbilder** (Dev-Server, Canvas mit allen Symbolen fünffach vergrößert, Sockel vierfach mit eingesetztem Relikt, Korallen und Muscheln): alle Symbole unterscheidbar und auf grünem und hellem Grund lesbar.
+- **Im Spiel** (Dev-Server, neues Spiel, Akt 2 per Debug, Testmodus): Goldener Sockel neben dem Hauptkontor mit Herz der Flut auf der Karte, Info-Panel (Stufe, Relikt, Text, Wirkung, Unterhalt, Liste zum Austauschen), Füllhorn per Klick mit Warenwahl (Eisenbarren), Zeile im Lagerfenster mit Tooltip, Fenster Relikte (L) mit Eingesetzt, Sammlung je Stufe und Herkunft, Tooltip mit genauem Bonus, Relikt-Angebot bei Ole im Fenster Völker samt Meldung, Fortsetzen nach dem Neuladen mit eingesetztem Füllhorn. Keine Konsolenfehler.
+
+**Nicht geprüft:** Koop mit zwei echten Browsern (nur über `check:relics` mit Spiegel und Mitspieler-Befehlen), das ruhende Relikt als Bild im Spiel (Zustand im Prüfskript geprüft), Nachtleuchten des Goldsockels im Bild, die Luftanzeige des Minispiels mit Atemmuschel im Bild, ein echter Kauf bei Brann und Aurel im Browser (im Prüfskript nur Ole), Balance der Preise und Chancen im längeren Spiel, Safari/Firefox.
+
+### Offene Punkte
+
+- Meerjungfrauen als vierte Quelle (eigener Thread): Eintrag in `RELIC_SOURCES.mermaid` und Handel mit Fisch, Räucherfisch, Perlen, Korallen, Muscheln.
+- Balance: Preise der Relikte (900 / 3.500 / 15.000 Münzen), Chancen (Aufträge 12 %, Tauchen 25 %) und Unterhalt (2 Perlen je Tag) sind Startwerte.

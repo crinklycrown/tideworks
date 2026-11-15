@@ -36,7 +36,8 @@ const SRC = {
   leeren: ['Geleert (Bänder, Rohrnetze)', () => SPR.icon.cross],
   handel: ['Handel', () => SPR.icon.coin],
   reparatur: ['Reparatur', () => SPR.icon.wrench],
-  leuchtturm: ['Weltenleuchtturm', () => bIcon('leuchtturm')]
+  leuchtturm: ['Weltenleuchtturm', () => bIcon('leuchtturm')],
+  relikte: ['Relikte (Unterhalt)', () => SPR.icon.relic]
 };
 // Getrennte Inseln: 'schiffe@<pid>' = Lieferung von/an einen Mitspieler
 const partnerOf = (q) => q.startsWith('schiffe@') ? q.slice(8) : null;

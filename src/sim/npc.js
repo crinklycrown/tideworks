@@ -31,6 +31,8 @@ import { holdRoom, addCargo, takeCargo, cargoOf, portOf } from './ships.js';
 import { reveal } from './explore.js';
 import { addBuilding } from './buildings.js';
 import { npcGone, endingOf } from './ending.js';
+import { RELIC_SOURCES } from '../data/relics.js';
+import { relicDef, isLegend, giveRelic, rollRelic, offeredRelics } from './relics.js';
 
 const LOG_LEN = 8;
 const LVL_IDX = Object.fromEntries(REP_LEVELS.map((L, i) => [L.id, i]));
@@ -40,7 +42,7 @@ export const lvlIdx = (id) => LVL_IDX[id || REP_LEVELS[0].id] | 0;
 function freshOne(id) {
   const T = NPC_TRADE[id], stock = {};
   for (const e of T.sells) if (e.it) stock[e.it] = e.n;
-  return { rep: T.rep, lv: -1, sat: {}, dem: {}, stock, chart: T.chart ? T.chart.n : 0, orders: [], deals: [], del: 0, vil: 0, log: [] };
+  return { rep: T.rep, lv: -1, sat: {}, dem: {}, stock, chart: T.chart ? T.chart.n : 0, orders: [], deals: [], del: 0, vil: 0, log: [], relic: null, rday: null };
 }
 export function freshNpc() { const o = { day: null, n: 0 }; for (const id of TRADERS) o[id] = freshOne(id); return o; }
 // Geladenen Zustand prüfen und mit Standardwerten ergänzen (save/serialize.js)
@@ -56,7 +58,10 @@ export function cleanNpc(raw) {
     if (Number.isInteger(s.lv)) N.lv = Math.max(-1, Math.min(REP_LEVELS.length - 1, s.lv));
     N.sat = nums(s.sat); N.dem = nums(s.dem); Object.assign(N.stock, nums(s.stock));
     if (Number.isFinite(+s.chart)) N.chart = Math.max(0, s.chart | 0);
-    N.orders = (Array.isArray(s.orders) ? s.orders : []).filter(q => q && ITEMS[q.it] && q.n > 0).map(q => ({ id: q.id | 0, it: q.it, n: q.n | 0, got: Math.max(0, q.got | 0), due: +q.due || 0, pay: Math.max(0, q.pay | 0), rep: +q.rep || 0 }));
+    N.orders = (Array.isArray(s.orders) ? s.orders : []).filter(q => q && ITEMS[q.it] && q.n > 0).map(q => Object.assign({ id: q.id | 0, it: q.it, n: q.n | 0, got: Math.max(0, q.got | 0), due: +q.due || 0, pay: Math.max(0, q.pay | 0), rep: +q.rep || 0 }, relicDef(q.relic) ? { relic: q.relic } : {}));
+    // Relikt im Angebot (0.24.0) und Tag, an dem zuletzt eins ausgewählt wurde
+    N.relic = s.relic && relicDef(s.relic.id) ? { id: s.relic.id, price: Math.max(0, s.relic.price | 0) } : null;
+    N.rday = Number.isFinite(s.rday) ? s.rday : null;
     N.deals = (Array.isArray(s.deals) ? s.deals : []).filter(d => d && ITEMS[d.it] && d.n > 0).map(d => ({ id: String(d.id), it: d.it, n: d.n | 0, p: +d.p || 0, bonus: d.bonus | 0, rep: +d.rep || 0, got: Math.max(0, d.got | 0), miss: d.miss | 0, fresh: !!d.fresh }));
     N.del = Math.max(0, +s.del || 0); N.vil = Math.max(0, s.vil | 0);
     N.log = (Array.isArray(s.log) ? s.log : []).filter(l => l && typeof l.s === 'string').slice(-LOG_LEN).map(l => ({ t: +l.t || 0, s: l.s.slice(0, 160) }));
@@ -180,8 +185,9 @@ function orderDone(g, id, o, pid) {
   N.orders = N.orders.filter(x => x !== o);
   coinAdd(g, o.pay, 'na:' + npcPid(id), pid);
   addRep(g, id, o.rep);
-  g.events.push({ type: 'npcOrder', npc: id, it: o.it, n: o.n, coins: o.pay, rep: o.rep, to: '*' });
-  logLine(g, id, `Auftrag erledigt: ${o.n} ${ITEMS[o.it].name} (+${o.pay} Münzen, +${o.rep} Ruf)`);
+  const rel = o.relic && giveRelic(g, o.relic, 'auftrag:' + id, true);   // Relikt als Belohnung (0.24.0)
+  g.events.push({ type: 'npcOrder', npc: id, it: o.it, n: o.n, coins: o.pay, rep: o.rep, relic: rel ? rel.id : null, to: '*' });
+  logLine(g, id, `Auftrag erledigt: ${o.n} ${ITEMS[o.it].name} (+${o.pay} Münzen, +${o.rep} Ruf${rel ? `, Relikt: ${relicDef(rel.id).name}` : ''})`);
 }
 // Schiff s gibt am Steg bis zu want Stück der Ware it ab: zuerst an offene Aufträge, über Routen an Lieferverträge,
 // der Rest wird verkauft (wenn das Volk die Ware ankauft). Liefert die abgegebene Menge.
@@ -294,6 +300,22 @@ export function npcBuy(g, c) {
     storyEvent(g, 'trade', id);
     return;
   }
+  // Relikt im Angebot (0.24.0, data/relics.js RELIC_SOURCES.npc): eins je Tag, kommt in die Reliktsammlung
+  if (key === 'relic') {
+    const C = RELIC_SOURCES.npc[id], O = N.relic, D = O && relicDef(O.id);
+    if (!C) return;
+    if (!lvlOk(N, C.lvl)) { failMsg(g, `Relikte: ${npcName(id)} zeigt dir seine Schätze erst ab Ruf „${C.lvl}“.`); return; }
+    if (!D) { failMsg(g, `${npcName(id)} hat heute kein Relikt mehr. Morgen vielleicht wieder.`); return; }
+    if (coins < O.price) { failMsg(g, `${D.name}: Es fehlen ${O.price - coins} Münzen.`); return; }
+    const e = giveRelic(g, O.id, 'npc:' + id, true);
+    N.relic = null;
+    if (!e) { failMsg(g, `${D.name} gibt es nicht mehr: Jemand anderes hat es schon gefunden.`); return; }
+    coinAdd(g, -O.price, 'pk:' + npcPid(id), pid);
+    g.events.push({ type: 'relicGot', id: O.id, src: 'npc:' + id, to: '*' });
+    logLine(g, id, `Relikt gekauft: ${D.name} (−${O.price})`);
+    storyEvent(g, 'trade', id);
+    return;
+  }
   if (key === 'karte') {
     const C = NPC_TRADE[id].chart;
     if (!C) return;
@@ -380,7 +402,11 @@ function fillOrders(g, id) {
     S.n++;
     const tpl = P[Math.floor(rnd(g, 1, 2) * P.length)], [lo, hi] = tpl.n;
     const n = Math.max(ORDERS.round, Math.round((lo + rnd(g, 3, 4) * (hi - lo)) / ORDERS.round) * ORDERS.round);
-    N.orders.push({ id: g.state.nextId++, it: tpl.it, n, got: 0, due: orderDue(g.state.time, tpl.days), pay: Math.round(n * basePrice(tpl.it) * tpl.pay), rep: tpl.rep });
+    const o = { id: g.state.nextId++, it: tpl.it, n, got: 0, due: orderDue(g.state.time, tpl.days), pay: Math.round(n * basePrice(tpl.it) * tpl.pay), rep: tpl.rep };
+    // Relikt als zusätzliche Belohnung (0.24.0): mit RELIC_SOURCES.orders.chance, Stufe je Volk
+    const RT = RELIC_SOURCES.orders.tier[id];
+    if (RT && rnd(g, 11, 12) < RELIC_SOURCES.orders.chance) { const r = rollRelic(g, RT, 13); if (r) o.relic = r; }
+    N.orders.push(o);
     added++;
   }
   return added;
@@ -455,5 +481,17 @@ export function npcTick(g, span) {
       logLine(g, id, `Auftrag abgelaufen: ${o.got} von ${o.n} ${ITEMS[o.it].name}${pay ? ` (+${pay})` : ''}`);
     }
     if (newDay) dawn(g, id);
+    relicOffer(g, id, day);
   }
+}
+// Relikt im Angebot (0.24.0): ab der Rufstufe aus RELIC_SOURCES.npc einmal je Tag eins auswählen, wenn keins da ist.
+// Ein legendäres, das inzwischen anderswo gefunden wurde, verschwindet aus dem Angebot.
+function relicOffer(g, id, day) {
+  const N = npcOf(g, id), C = RELIC_SOURCES.npc[id], S = g.state.relics;
+  if (!C || !S) return;
+  if (N.relic && (!relicDef(N.relic.id) || (isLegend(N.relic.id) && S.got[N.relic.id]))) N.relic = null;
+  if (N.relic || N.rday === day || !lvlOk(N, C.lvl)) return;
+  N.rday = day;
+  const r = rollRelic(g, C.tier, 21 + TRADERS.indexOf(id), offeredRelics(g));
+  if (r) { N.relic = { id: r, price: C.price }; g.events.push({ type: 'relicOffer', npc: id, id: r, to: '*' }); }
 }

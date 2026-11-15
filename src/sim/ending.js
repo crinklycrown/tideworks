@@ -23,6 +23,7 @@ import { HOST_PID, islData, homeIsl, recount } from './state.js';
 import { addBuilding, revealAround } from './buildings.js';
 import { npcPort } from './villages.js';
 import { stegLine, STEG_MAX, bldTiles } from './kontor.js';
+import { giveRelic } from './relics.js';
 
 export const endingOf = (g) => (g.state && g.state.story && g.state.story.choice) || null;
 // Handelt dieses Volk nicht mehr? (Aurel nach jedem Ende, Ole und Brann nach Ende B; der Inselrat gibt es nur nach Ende A)
@@ -102,7 +103,8 @@ function councilSpot(g, k, K) {
 }
 function landOk(g, x, y) { const gr = g.W.gr(x, y); return !g.W.ocean(x, y) && !!BUILDABLE[gr] && gr !== G_MOUNT && gr !== G_LAVA; }
 
-function relic(g, it) { const inv = islData(g, homeIsl(g)).inv; inv[it] = Math.max(1, (inv[it] || 0) + 1); }
+// End-Relikt (0.24.0): in die Reliktsammlung (sim/relics.js), nicht mehr ins Lager; die Meldung kommt mit dem Ereignis „ending“
+function relic(g, id) { giveRelic(g, id, 'ende', true); }
 
 /* ---------- Die Folgen ---------- */
 export function applyEnding(g, c) {

@@ -22,6 +22,8 @@ import { isFluidB, netGuard } from './fluids.js';
 import { logOp, snapOf } from './undo.js';
 import { setRecipe } from './production.js';
 import { npcIslFree } from './ending.js';
+import { isPedestal, relicUnseat } from './relics.js';
+import { PEDESTALS } from '../data/relics.js';
 
 // Vorkommen unter einem Bohrer (Mehrheitsregel, Zahlen in data/mining.js):
 // gefördert wird das Vorkommen mit den meisten Feldern, bei Gleichstand das seltenere (rank in ORES).
@@ -113,6 +115,12 @@ export function checkPlace(g, t, x, y, free, d) {
     else if (k !== homeIsl(g) && !(I && I.ring >= 2)) return { ok: false, reason: 'Der Weltenleuchtturm steht auf der Heimatinsel oder auf einer Insel ab Ring 2.', isl: k };
     if (!g.KONT[k]) return { ok: false, reason: 'Der Weltenleuchtturm braucht ein Hauptkontor auf der Insel.', isl: k };
     if (oceanDocks(g, x, y, def.w, def.h).length < 2) return { ok: false, reason: 'Der Weltenleuchtturm muss direkt am Meer stehen.', isl: k };
+  }
+  // Reliktsockel (0.24.0): nur mit Hauptkontor, höchstens einer je Insel (jede Stufe zählt)
+  if (isPedestal(t)) {
+    if (!g.KONT[k]) return { ok: false, reason: 'Reliktsockel gibt es nur auf Inseln mit Hauptkontor.', isl: k };
+    const c = islc(g, k);
+    if (Object.keys(PEDESTALS).some(p => c[p])) return { ok: false, reason: 'Auf jeder Insel steht höchstens ein Reliktsockel. Werte den vorhandenen auf (U).', isl: k };
   }
   if (t === 'tank') { const why = netGuard(g, footprint(x, y, def.w, def.h), true); if (why) return { ok: false, reason: why, isl: k }; }
   if (free) return { ok: true, isl: k };
@@ -290,6 +298,7 @@ export function removeBuilding(g, b, refund, opt) {
   if (b.t === 'dkiste' && b.out) stashToHQ(g, b.isl, b.out);
   for (const p of bldTiles(b)) g.bmap.set(p.x, p.y, 0);
   g.blds.delete(b.id);
+  relicUnseat(g, b);   // Reliktsockel: das Relikt geht zurück in die Sammlung
   if (b.t === 'bandbruecke') unlinkInto(g, b);
   if (STEG.has(b.t)) g.shipPathCache.clear();
   for (const id of (b.links || [])) { const o = g.blds.get(id); if (o && o.links) o.links = o.links.filter(x => x !== b.id); }

@@ -16,7 +16,7 @@ import { FAME_TECH } from '../data/mining.js';
 import { img, fitScale } from '../gfx/pixelbuffer.js';
 import { SPR, bIcon } from '../gfx/sprites.js';
 import { fmt, esc } from '../util/format.js';
-import { totalRes, isUnlocked, planOk } from '../sim/state.js';
+import { totalRes, isUnlocked, planOk, actOk } from '../sim/state.js';
 import { lockReason, planText, srcOf, NPCS } from '../data/unlocks.js';
 import { canResearch, reqMet } from '../sim/research.js';
 import { effectLines, descOf } from '../sim/mods.js';
@@ -331,10 +331,11 @@ function costHTML(res, isDone, coins) {
 function reqText(T) {
   const l = T.req.map(r => TECH_BY_ID[r] ? `${TECH_BY_ID[r].name}${game.state.tech[r] ? '' : ' (offen)'}` : `${techName(r)} (${TECH_PLANNED[r] ? TECH_PLANNED[r].note : 'fehlt'})`);
   if (T.plan && !planOk(game, T)) l.push(`${planText(T)} (${lockReason('plan:' + T.plan).replace(/\.$/, '')})`);
+  if (!actOk(game, T)) l.push(`Akt ${T.act} der Geschichte`);
   return l.join(', ');
 }
-// Voraussetzung anzeigen: Forschungen oder ein noch fehlender Plan
-const hasReq = (T) => T.req.length || (T.plan && !planOk(game, T));
+// Voraussetzung anzeigen: Forschungen, ein noch fehlender Plan oder ein späterer Akt
+const hasReq = (T) => T.req.length || (T.plan && !planOk(game, T)) || !actOk(game, T);
 function unlockText(T) {
   if (isUpgrade(T)) return effectLines(T.effect).join(' &middot; ');
   return unlocksOf(T.id).map(u => u.kind === 'b' ? BD[u.id].name : `Rezept ${RECIPE_BY_ID[u.id].name || ITEMS[u.item].name}`).join(', ');
@@ -398,7 +399,8 @@ function detailHTML() {
       const R = TECH_BY_ID[r];
       if (!R) return `<div class="xs bad">${img(SPR.icon.lock, 1)} ${techName(r)} &ndash; ${TECH_PLANNED[r] ? TECH_PLANNED[r].note : 'fehlt'}</div>`;
       return `<button class="st-req${game.state.tech[r] ? ' ok' : ''}" data-st="goto" data-id="${r}">${img(iconSpec(R), fitScale(iconSpec(R), 18))}<span>${R.name}</span>${game.state.tech[r] ? img(SPR.icon.check, 1) : img(SPR.icon.lock, 1)}</button>`;
-    }).join('') + (T.plan && !planOk(game, T) ? `<div class="xs bad">${img(SPR.icon.lock, 1)} ${planText(T)} nötig &ndash; ${lockReason('plan:' + T.plan)}</div>` : '') + '</div>';
+    }).join('') + (T.plan && !planOk(game, T) ? `<div class="xs bad">${img(SPR.icon.lock, 1)} ${planText(T)} nötig &ndash; ${lockReason('plan:' + T.plan)}</div>` : '')
+      + (!actOk(game, T) ? `<div class="xs bad">${img(SPR.icon.lock, 1)} Erst ab Akt ${T.act} der Geschichte</div>` : '') + '</div>';
   }
   if (isUpgrade(T)) h += `<div class="lbl">Wirkung</div>` + effectLines(T.effect).map(l => `<div class="xs st-eff">${img(SPR.icon.up, 1)} ${l}</div>`).join('');
   else if (un.length) {

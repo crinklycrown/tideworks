@@ -7,6 +7,7 @@
 //   optional pos: [x, y] = feste Position im Baum (überschreibt das automatische Layout),
 //   optional plan = zusätzliche Voraussetzung: Plan eines Volks (data/unlocks.js PLANS, gesetzt über unlock('plan:<id>')),
 //   optional early = frühe Forschung für die Story; bei Getrennten Inseln (ohne Story) von Anfang an erforscht.
+//   optional act = erst ab diesem Akt der Geschichte erforschbar (sim/state.js actOk; ohne Geschichte frei).
 // Stufe-1-Gebäude brauchen keine Forschung, sie hängen an der Wurzel „Grundlagen“.
 // Wirkungen (effect), alle additiv, Basiswerte in config.js / data/mining.js:
 //   cap: { kontor|kiste|handelskontor: +n } Platz je Ware          store: { batterie: +n }    Stromspeicher
@@ -58,6 +59,8 @@ export const TECH = [
   { id: 'magnete',     name: 'Supermagnete',       stufe: 6, cat: 'chemie',       res: { schaltplan: 10, stahl: 20 },           req: ['chemie'],              desc: 'Assembler formen Supermagnete aus Neodym und Stahl.' },
   { id: 'kartografie', name: 'Kartografie',       stufe: 2, cat: 'schifffahrt',  res: { skizze: 8, glas: 10 },                 req: ['schiffbau'],           desc: 'Seekarten und Fernrohre: Werften bauen schnelle Entdecker, die weit sehen und selbst erkunden.' },
   { id: 'handel',      name: 'Handel',             stufe: 3, cat: 'schifffahrt',  res: { skizze: 15, werkzeug: 30 },            req: [],                      desc: 'Handelsposten am Meer: Händler kaufen und verkaufen gegen Münzen.' },
+  // 0.24.0: Reliktsockel, erst ab Akt 2 (act; ohne Geschichte frei)
+  { id: 'reliktkunde', name: 'Reliktkunde',        stufe: 3, cat: 'wohnen',       res: { skizze: 12, ziegel: 30 },              req: ['handwerk'],   act: 2,  desc: 'Reliktsockel aus Stein: Ein Fundstück aus dem versunkenen Land wirkt auf die ganze Insel.' },
   { id: 'drohnen',     name: 'Drohnen',            stufe: 6, cat: 'logistik',     res: { schaltplan: 15, kunststoff: 30 },      req: ['magnete'],             desc: 'Drohnenhäfen und Drohnenkisten: Waren fliegen ohne Band, beschädigte Gebäude werden repariert.' },
   { id: 'multibohrer', name: 'Multi-Bohrer',       stufe: 6, cat: 'abbau',        res: { schaltplan: 20, kunststoff: 20, schmiermittel: 20 }, req: ['magnete', 'tiefbohrung'], desc: 'Große, wassergekühlte Bohrtürme auf 3×3 Feldern.' },
 

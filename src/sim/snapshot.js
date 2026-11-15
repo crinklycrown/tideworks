@@ -71,7 +71,7 @@ export function buildSnapshot(g, cache, steps) {
     }),
     RT: sep ? rtFor(g, me) : g.RT, topoVer: g.topoVer, wireVer: g.wireVer,
     // Endgame: Münzen, Leuchtturm, Ereignisse, Aufträge, Händler (ohne Pfad)
-    coins: st.coins, coinsTotal: st.coinsTotal, wonder: st.wonder, unl: st.unl, story: st.story, npc: st.npc, dive: st.dive, ev: sep ? evFor2(g, me) : st.ev, evMode: st.evMode, orders: sep ? ownKeys(g, st.orders, me) : st.orders,
+    coins: st.coins, coinsTotal: st.coinsTotal, wonder: st.wonder, unl: st.unl, story: st.story, npc: st.npc, dive: st.dive, relics: st.relics, ev: sep ? evFor2(g, me) : st.ev, evMode: st.evMode, orders: sep ? ownKeys(g, st.orders, me) : st.orders,
     players: sep ? playersFor(g) : st.players, mode: st.mode,   // Koop: Spieler (Name, Farbe, Einstellungen) und Modus
     trade: sep ? tradeFor(g, me, F) : { due: st.trade.due, list: st.trade.list.map(t => ({ id: t.id, kind: t.kind, isl: t.isl, post: t.post, x: t.x, y: t.y, fl: t.fl, st: t.st, tm: t.tm, offer: t.offer })) },
     events: g.events, bUpd: [], bDel: [],
@@ -163,7 +163,7 @@ export function applyWorld(m, w) {
   m.pipeVer = 1; m.PN = null; m.pnVer = -1; m.fnets = [];
   m.state = { v: w.v, seed: w.seed, time: 0, xp: 0, xpTotal: 0, goal: 0, tech: {}, nextId: 1, isl: {}, found: {}, mapped: {}, jet: [], ships: [], loot: {}, stats: { made: {}, delivered: 0, burned: 0, sold: 0, bought: 0 }, flow: freshFlow(), flowT: 0, ui: mergeDefaults(freshUI(), w.ui),
     coins: 0, coinsTotal: 0, coinLog: [], market: { s: {}, b: {}, h: {}, ht: 0 }, trade: { due: {}, list: [] }, orders: {}, wonder: { ph: 0, pb: 0, pt: 0, got: null, lager: 1, acc: 0, id: null, doneAt: null }, unl: {}, ev: { list: [], nextAt: null, n: 0 }, evMode: 'normal',
-    players: {}, mode: w.homes ? 'separate' : 'shared', homes: w.homes || null, wfirst: null, story: null, npc: null, dive: null, npcs: w.npcs || null };
+    players: {}, mode: w.homes ? 'separate' : 'shared', homes: w.homes || null, wfirst: null, story: null, npc: null, dive: null, relics: null, npcs: w.npcs || null };
   m.lh = null; m.perms = { ask: [], ok: [] };
   m.flowVer = (m.flowVer || 0) + 1;
   m.blds = new Map(); m.flatIds = new Int32Array(0);
@@ -180,7 +180,7 @@ export function applySnapshot(m, s, now) {
   if (s.jet) { st.jet = s.jet; m.jetVer = (m.jetVer || 0) + 1; }
   if (s.flow) { st.flow = s.flow; st.flowT = s.flowT; m.flowVer++; m.SOLL = s.soll || {}; m.insp = s.insp || null; }
   if (s.market) { st.market = s.market; st.coinLog = s.coinLog || []; m.marketVer = (m.marketVer || 0) + 1; }
-  st.coins = s.coins; st.coinsTotal = s.coinsTotal; st.wonder = s.wonder; st.unl = s.unl || {}; st.story = s.story || null; st.npc = s.npc || null; st.dive = s.dive || null; st.ev = s.ev; st.evMode = s.evMode; st.orders = s.orders;
+  st.coins = s.coins; st.coinsTotal = s.coinsTotal; st.wonder = s.wonder; st.unl = s.unl || {}; st.story = s.story || null; st.npc = s.npc || null; st.dive = s.dive || null; st.relics = s.relics || null; st.ev = s.ev; st.evMode = s.evMode; st.orders = s.orders;
   if (s.players) st.players = s.players;
   if (s.mode) st.mode = s.mode;
   // Getrennte Inseln: Startplätze, erster Leuchtturm, Leuchtturm-Phasen aller, Erlaubnis-Anfragen

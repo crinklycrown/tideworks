@@ -16,6 +16,7 @@ import { TECH } from '../data/tech.js';
 import { WONDER } from '../data/wonder.js';
 import { DRONES, DKISTE } from '../data/drones.js';
 import { pst, isSep, actor, ownerOf } from './state.js';
+import { fxShip } from './relics.js';
 
 // Gruppen in rate: { drill: … } gilt für alle Bohrer
 const GROUPS = { drill: Object.keys(DRILLS) };
@@ -84,7 +85,8 @@ export const powerOf = (g, t, pid) => { const M = mods(g, pid); return (M.power[
 // Schiffe je Art (data/ships.js): Laderäume, Platz je Laderaum, Tempo (Felder/s) – mit den Upgrades des Besitzers
 export const holdsOf = (g, s) => { const K = shipKind(s); return K.holds + (K.upHolds ? mods(g, ownerOf(s)).holds : 0); };
 export const holdCapOf = (g, s) => { const K = shipKind(s); return K.holdCap + (K.upHolds ? mods(g, ownerOf(s)).holdCap : 0); };
-export const speedOf = (g, s) => shipKind(s).speed * mods(g, ownerOf(s)).shipSpeed;
+// Relikt der Insel seiner Werft (sim/relics.js fxShip): „Schiffe dieser Insel schneller“
+export const speedOf = (g, s) => shipKind(s).speed * (mods(g, ownerOf(s)).shipSpeed + fxShip(g, s));
 
 // Beschreibung eines Gebäudes mit den Werten inklusive Upgrades (Platzhalter in BD[t].desc, data/buildings.js):
 // {cap:kontor}, {store:batterie}, {house}, {rate:<Gebäude>:<Grundwert>}, {power:<Gebäude>:<Grundwert>}, {bb:<Feld>} (Brückenband), {ex:building} (Extraktor)

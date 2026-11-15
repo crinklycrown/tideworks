@@ -15,6 +15,7 @@ import { createView, netWorld, netSnap } from '../src/sim/views.js';
 import { remoteWorld, remoteSnap } from '../src/net/remote.js';
 import { NPC_ORDER } from '../src/data/npcs.js';
 import { NPC_TRADE, REP_LEVELS, CONTRACTS } from '../src/data/npctrade.js';
+import { RELIC_SOURCES } from '../src/data/relics.js';
 import { RECIPES } from '../src/data/recipes.js';
 import { SHIP_KINDS } from '../src/data/ships.js';
 import { CYCLE, SAVE_VERSION } from '../src/config.js';
@@ -38,7 +39,8 @@ const nextDawn = () => { g.state.time = (Math.floor(g.state.time / CYCLE) + 1) *
 ok(g.state.npc && NPC_ORDER.every(id => N(id) && N(id).lv === -1), 'neues Spiel: Völker ohne Kontakt');
 ok(N('ole').rep === 10 && N('brann').rep === 30 && N('aurel').rep === 60, 'Startruf Ole 10, Brann 30, Aurel 60');
 ok(REP_LEVELS.length === 4 && repLvl(N('ole').rep) === 0 && repLvl(N('aurel').rep) === 2, 'vier Rufstufen: Ole misstrauisch, Aurel freundlich');
-for (const id of NPC_ORDER) ok(NPC_TRADE[id].sells.some(e => e.soon), `${id}: Platzhalter im Angebot`);
+// seit 0.24.0: die Relikt-Platzhalter sind echte Angebote (data/relics.js RELIC_SOURCES.npc), nur Aurels „Luxuswaren“ bleiben Platzhalter
+for (const id of NPC_ORDER) ok(RELIC_SOURCES.npc[id] && !NPC_TRADE[id].sells.some(e => e.soon && /Relikt/.test(e.soon)), `${id}: Relikte im Angebot statt Platzhalter`);
 ok(RECIPES.some(r => r.b === 'raeucherei') && SHIP_KINDS.kogge, 'Räucherei und Kogge vorhanden');
 ok(HOST_ONLY.has('npcRep'), 'Debug npcRep nur für den Host');
 
