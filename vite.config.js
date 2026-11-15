@@ -3,6 +3,11 @@ import { readFileSync } from 'node:fs';
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 
+// GitHub Pages: das Spiel liegt unter https://crinklycrown.github.io/tideworks/
+const BASE = '/tideworks/';
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const ASSET_PREFIX = `(?:\\./|${escRe(BASE)})`;   // Asset-Pfade im gebauten HTML: ./… oder /tideworks/…
+
 // dist/ soll auch per Doppelklick (file://) laufen: relative Pfade, ein klassisches Skript
 // (kein type="module", kein crossorigin) und der Worker als eingebettetes Skript.
 function fileProtocolFriendly() {
@@ -30,13 +35,13 @@ function singleFile() {
       if (!page) return;
       let html = String(page.source);
       const scripts = [];
-      html = html.replace(/\s*<script defer src="\.\/([^"]+)"><\/script>/g, (all, file) => {
+      html = html.replace(new RegExp(`\\s*<script defer src="${ASSET_PREFIX}([^"]+)"><\\/script>`, 'g'), (all, file) => {
         const c = bundle[file];
         if (!c) return all;
         scripts.push(String(c.code).replace(/<\/script/gi, '<\\/script'));
         return '';
       });
-      html = html.replace(/<link rel="stylesheet" href="\.\/([^"]+)">/g, (all, file) => {
+      html = html.replace(new RegExp(`<link rel="stylesheet" href="${ASSET_PREFIX}([^"]+)">`, 'g'), (all, file) => {
         const a = bundle[file];
         return a ? `<style>\n${String(a.source).replace(/<\/style/gi, '<\\/style')}\n</style>` : all;
       });
@@ -47,7 +52,7 @@ function singleFile() {
 }
 
 export default defineConfig({
-  base: './',
+  base: BASE,
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   build: {
     target: 'es2020',

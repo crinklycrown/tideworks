@@ -1,5 +1,7 @@
 # Tideworks
 
+**Jetzt spielen: https://crinklycrown.github.io/tideworks/**
+
 Insel- und Fabrikbauspiel (Canvas, Pixel-Art, Vanilla-JS mit ES-Modulen, Vite).
 Früher „Workscape“; aus der Einzeldatei `Workscape_3.html` modularisiert. Seit Version 4 mit neuer Vollbild-Oberfläche und Produktionsstatistik,
 seit Version 5 mit unendlicher, prozedural erzeugter Welt (Inseltypen, Nebel, Minimap),
@@ -27,9 +29,9 @@ seit 0.15.0 (Spielstand Version 18) nach dem ersten Story-Test mit **Extraktor w
 
 ```bash
 npm install
-npm run dev       # Entwicklungsserver (http://localhost:5173)
+npm run dev       # Entwicklungsserver (http://localhost:5173/tideworks/)
 npm run build     # fertige Version nach dist/
-npm run preview   # dist/ über einen lokalen Server ansehen
+npm run preview   # dist/ über einen lokalen Server ansehen (http://localhost:4173/tideworks/)
 npm run check:tree  # Skilltree prüfen: keine Überlappungen, jede Forschung genau einmal, alle Gebäude und Rezepte abgedeckt
 npm run check:world # Welt-Erzeugung: gleich für gleichen Seed, Einzelspieler-Start wie in Version 13, Startplätze für 2–4 Spieler
 npm run check:coop  # Getrennte Inseln ohne Browser (Besitz, Erlaubnis, Preislisten, Datenschutz, Speichern, Datenrate)
@@ -37,11 +39,12 @@ npm run check:story # Akt 1 mit echtem Segeln, Debug, Speichern, Koop-Ansicht, M
 npm run check:npc   # Handel mit den Völkern: Ruf, Kaufen/Verkaufen, Preise, Aufträge, Lieferverträge per Route, Dörfer, Speichern, Koop
 ```
 
-`dist/index.html` läuft auch per Doppelklick (file://) oder von jedem einfachen
-statischen Server. Dafür baut Vite ein klassisches Skript (IIFE) mit eingebettetem
-Worker und ohne `type="module"` (siehe `vite.config.js`).
+**GitHub Pages (seit 0.23.1):** Jeder Push auf `main` baut das Spiel (`.github/workflows/deploy.yml`) und veröffentlicht `dist/`
+unter https://crinklycrown.github.io/tideworks/. Dafür ist `base` in `vite.config.js` auf `/tideworks/` gesetzt:
+`dist/index.html` lädt seine Dateien aus `/tideworks/assets/…` und braucht deshalb einen Server mit diesem Pfad (Pages oder `npm run preview`).
+Vite baut weiterhin ein klassisches Skript (IIFE) mit eingebettetem Worker und ohne `type="module"` (siehe `vite.config.js`).
 Zusätzlich entsteht `dist/tideworks.html`: das ganze Spiel als **eine einzige Datei** (Skript und CSS eingebettet).
-Diese Datei lässt sich ohne den Ordner `assets/` weitergeben und per Doppelklick starten.
+Diese Datei lässt sich ohne den Ordner `assets/` weitergeben und per Doppelklick (file://) starten.
 
 ## Schalter (`src/config.js`)
 

@@ -873,3 +873,35 @@ Aufgabe: die beiden Enden nach `docs/STORY.md` als Szenen mit Dialogen, dazu die
 - **`dist/tideworks.html` per file://:** beide Szenen bis zum natürlichen Ende laufen lassen, A mit Branns Dialog, B schließt ohne Dialog; danach läuft das Spiel, keine Konsolenfehler.
 
 **Nicht geprüft:** Koop mit zwei Browsern (nur über `check:ending`/`check:coop` mit gespiegeltem Zustand), der brennende Turm im Spiel als Bild (keine Leuchtturm-Baustelle im Debug-Stand; der Codepfad ist unverändert seit 0.18.0), Safari/Firefox, Handy, ein ehrlich durchgespielter Spielstand.
+
+## GitHub Pages (0.23.1, Spielstand Version 18)
+
+Seit 0.23.1 liegt das Projekt auf GitHub (`crinklycrown/tideworks`) und wird unter https://crinklycrown.github.io/tideworks/ veröffentlicht. Spiellogik unverändert.
+
+- **Build:** `npm install` und `npm run build` liefen ohne Fehler, es musste nichts korrigiert werden. Nur die bekannte Vite-Warnung „Chunk größer als 500 kB“ (ein Skript, gewollt).
+- **`base: '/tideworks/'`** in `vite.config.js` (vorher `./`). Das Plugin `singleFile` erkennt jetzt beide Schreibweisen (`./…` und `/tideworks/…`), `dist/tideworks.html` bleibt also eine eigenständige Einzeldatei für file://.
+  Folge: `dist/index.html` läuft **nicht mehr per Doppelklick**, sondern nur unter `/tideworks/` (Pages oder `npm run preview`); der Dev-Server läuft unter http://localhost:5173/tideworks/.
+- **Pfade geprüft:** Bilder und Sprites werden im Code gezeichnet (keine Bilddateien), der Worker ist eingebettet (`?worker&inline`), Schriften kommen von Google Fonts (absolute URL), es gibt keine `fetch`-Aufrufe für Daten und keinen `public/`-Ordner. Der Beitritts-Link (`joinLink` in `net/session.js`) nimmt die aktuelle Adresse und passt damit von selbst.
+- **Deploy:** `.github/workflows/deploy.yml` baut bei jedem Push auf `main` (Node 22, `npm ci`, `npm run build`) und veröffentlicht `dist/` mit `actions/configure-pages`, `actions/upload-pages-artifact` und `actions/deploy-pages`. Auch von Hand startbar (`workflow_dispatch`).
+- **Geprüft:** `npm run preview` unter http://localhost:4173/tideworks/: Titelbildschirm mit Demo, „Neues Spiel“, Prolog startet, `tideworks.info()` meldet `mode: 'worker'`, `storage: 'idb'`, keine Konsolenfehler. `check:coop` und `check:world` grün.
+
+### Koop auf einer statischen Seite
+
+Ergebnis: **Koop braucht keinen eigenen Server und funktioniert auf GitHub Pages**, solange die öffentlichen Dienste erreichbar sind. Es wurde nichts umgebaut.
+
+- Die Spieldaten laufen **Peer-to-Peer** über WebRTC-Datenkanäle direkt zwischen den Browsern (`net/peer.js`); der Host-Browser ist der „Server“ (Simulation im Worker des Hosts).
+- **Vermittlung (Signalisierung):** der kostenlose öffentliche PeerJS-Dienst `0.peerjs.com` (`PEER` in `data/net.js`). Aus diesem Netz am 15.11.2026 geprüft: die WebSocket-Verbindung zu `wss://0.peerjs.com/peerjs` meldet `OPEN`. Damit ist die bisher offene Prüfung gegen den echten Dienst (siehe „Koop Teil 1“) teilweise erledigt.
+- **NAT-Durchdringung:** öffentliche STUN-Server von Google und die TURN-Server von PeerJS (`ICE` in `data/net.js`) als Relay, falls keine direkte Verbindung zustande kommt. Ein eigener TURN-Server lässt sich im Spiel eintragen (Titel → Koop → Verbindung).
+- **Ohne Vermittlung:** „Manuell verbinden“ tauscht Angebots- und Antwort-Code (`TWO-…`/`TWA-…`) per Chat oder Mail, ganz ohne Signalisierungsserver.
+- **Risiken (kein eigener Server nötig, aber Abhängigkeit von Dritten):** `0.peerjs.com` und `*.turn.peerjs.com` sind kostenlose Dienste ohne Zusage zur Verfügbarkeit; die TURN-Zugangsdaten `peerjs/peerjsp` sind öffentlich und können sich ändern. Fällt die Vermittlung aus, bleibt „Manuell verbinden“. Fällt TURN aus, scheitern nur Verbindungen hinter strengem NAT (z. B. manche Firmen- oder Mobilfunknetze).
+- **Nicht geprüft:** ein echtes Koop-Spiel zwischen zwei Rechnern über die veröffentlichte Seite.
+
+### Spielstände
+
+- **Export/Import gibt es schon** (seit Version 12): „Spiel laden“ → „Exportieren“ lädt eine `tideworks-save-<Datum>.json` herunter, Import liest so eine Datei wieder ein (`exportSlot`/`importFile` in `main.js`). Kein offener Punkt.
+- **Hinweis für Pages:** Spielstände liegen in IndexedDB bzw. localStorage **je Herkunft (Origin)**. Stände aus `localhost`, file:// oder einer anderen Adresse erscheinen auf `crinklycrown.github.io` nicht von selbst; sie lassen sich per Export/Import umziehen. Alle Seiten unter `crinklycrown.github.io` teilen sich denselben Browser-Speicher (die Schlüssel von Tideworks haben eigene Namen, Konflikte sind nicht zu erwarten).
+
+### Offene Punkte
+
+- In den GitHub-Einstellungen muss **Settings → Pages → Source** auf „GitHub Actions“ stehen, sonst wird der Workflow nicht veröffentlicht.
+- Koop über die veröffentlichte Seite mit zwei Rechnern einmal echt testen.
